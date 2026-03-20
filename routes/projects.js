@@ -21,6 +21,32 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// @route GET /project/:id
+// @desc Get a single project by ID
+router.get('/:id', [auth, validateId], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: 'Validation failed', details: errors.array() });
+  }
+
+  const { id } = req.params;
+  const ownerId = req.user.id;
+
+  try {
+    const projectRes = await db.query(
+      "SELECT id, name, description, owner_id, status, created_at FROM projects WHERE id = $1 AND owner_id = $2 AND status = 'active'",
+      [id, ownerId]
+    );
+    if (projectRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    res.json(projectRes.rows[0]);
+  } catch (err) {
+    console.error('Get project by ID error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // @route POST /project
 // @desc Create a new project
 router.post(
