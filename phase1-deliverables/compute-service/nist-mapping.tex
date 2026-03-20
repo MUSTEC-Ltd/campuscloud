@@ -1,0 +1,24 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \textbf{Compute Service NIST Mapping}}\\
+    Team B1--B3
+\end{center}
+
+The compute service maps most strongly to \textbf{On-Demand Self-Service}. The main reason is that users can request compute capacity through an API call instead of through manual Docker commands on the host. Once a valid request reaches the service, the system creates the instance record, launches the container, and returns the result without operator intervention. Stop and delete follow the same pattern, so the user controls the full lifecycle through platform APIs rather than direct access to the machine.
+
+This work also supports \textbf{Rapid Elasticity} at the level expected in Phase 1. The platform is not implementing autoscaling yet, but it can still allocate and release compute quickly. Containers can be launched in seconds, stopped when they are no longer needed, and deleted to free host resources. For a student private cloud, that is already a practical form of elastic behavior because projects can request and release runtime environments on demand.
+
+There is also a clear link to \textbf{Resource Pooling}. Multiple project containers are placed on one Docker host, and the compute service is the layer that turns that host into a managed pool instead of a single-user system. Users do not work with the host directly; they ask the platform for instances, and the platform allocates bounded compute slices using CPU and memory limits.
+
+The connection to \textbf{Measured Service} is more indirect. This module does not collect usage metrics itself, but it does establish the tracked container identity and the resource limits that the monitoring module later observes. Because of that, the compute service is the foundation for later visibility and reporting even though it is not the component performing the measurements.
+
+In short, the compute service is the part of Phase 1 that makes CampusCloud behave like a cloud platform instead of a manual Docker exercise. It gives the user programmatic control over compute resources, applies limits, and allows the shared host to be used through service APIs.
+
+\end{document}
+
