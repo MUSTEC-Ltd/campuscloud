@@ -1,24 +1,27 @@
 {
   "name": "backend",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "setup": "node scripts/setup_db.js",
+    "dev": "npm run setup && nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
-  },
-  "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "typescript": "^5"
+    "@supabase/supabase-js": "^2.99.2",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.1",
+    "jsonwebtoken": "^9.0.3",
+    "nodemon": "^3.1.14",
+    "pg": "^8.20.0"
   }
 }
