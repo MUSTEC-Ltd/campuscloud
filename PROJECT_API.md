@@ -52,6 +52,34 @@ Returns all active projects for the authenticated user.
 
 ---
 
+## GET /project/:id
+
+Returns a single active project by its ID for the authenticated user.
+
+**URL Params:** `id` — UUID of the project
+
+**Response (200):**
+```json
+{
+  "id": "uuid",
+  "name": "my-web-app",
+  "description": "A containerized web app",
+  "owner_id": "uuid",
+  "status": "active",
+  "created_at": "2026-03-20T10:30:00.000Z"
+}
+```
+
+**Responses:**
+
+| Status | Body |
+|--------|------|
+| 200 | `{ id, name, description, owner_id, status, created_at }` |
+| 400 | `{ "error": "Validation failed", "details": [...] }` — non-UUID id |
+| 404 | `{ "error": "Project not found" }` |
+
+---
+
 ## PUT /project/:id
 
 Updates name and/or description of an existing project. Both fields are optional but at least one should be provided.
