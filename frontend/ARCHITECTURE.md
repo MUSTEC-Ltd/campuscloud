@@ -1,166 +1,230 @@
-# CampusCloud — Architecture Diagram
+# CampusCloud Frontend — Architecture Diagram
 
-## System Overview
+**Team A06 · BDS-8A**
 
-CampusCloud is a mini private cloud platform composed of two planes:
-- **Control Plane (BDS-8A)** — user identity, project management, API gateway, and the web dashboard
-- **Data Plane (BDS-8B)** — container compute, network isolation, and resource monitoring
+This document covers the internal architecture of the frontend dashboard only.
+Other teams' backend services and data-plane components are referenced only
+where the frontend directly interfaces with them.
+
+---
+
+## High-Level Component Tree
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                         USER (Browser)                           │
-│                                                                  │
-│   ┌─────────────────────────────────────────────────────────┐   │
-│   │              FRONTEND DASHBOARD  (React/Vite)           │   │
-│   │                                                         │   │
-│   │  ┌──────────┐  ┌───────────┐  ┌────────────────────┐  │   │
-│   │  │  Login / │  │ Projects  │  │    Containers       │  │   │
-│   │  │ Register │  │   Page    │  │       Page          │  │   │
-│   │  └────┬─────┘  └─────┬─────┘  └────────┬───────────┘  │   │
-│   │       │              │                  │              │   │
-│   │  ┌────▼──────────────▼──────────────────▼──────────┐  │   │
-│   │  │               API Layer  (src/api/)              │  │   │
-│   │  │  auth.js · projects.js · instances.js (mock)     │  │   │
-│   │  └────────────────────┬─────────────────────────────┘  │   │
-│   └───────────────────────│─────────────────────────────────┘   │
-└───────────────────────────│──────────────────────────────────────┘
-                            │  HTTP / REST  (Bearer JWT)
-        ┌───────────────────▼─────────────────────────────┐
-        │           CONTROL PLANE  (BDS-8A)                │
-        │                                                  │
-        │  ┌──────────────────────────────────────────┐   │
-        │  │     Express Backend  (Node.js :5000)      │   │
-        │  │                                          │   │
-        │  │  POST /register   POST /login            │   │
-        │  │  POST /logout     GET/POST /project      │   │
-        │  │                                          │   │
-        │  │  auth middleware (JWT verify)            │   │
-        │  └─────────────┬────────────────────────────┘   │
-        │                │  Supabase JS SDK               │
-        │  ┌─────────────▼────────────────────────────┐   │
-        │  │         Supabase (PostgreSQL)             │   │
-        │  │                                          │   │
-        │  │  users · refresh_tokens · projects       │   │
-        │  └──────────────────────────────────────────┘   │
-        └─────────────────────┬────────────────────────────┘
-                              │  Docker SDK / REST
-        ┌─────────────────────▼────────────────────────────┐
-        │            DATA PLANE  (BDS-8B)                  │
-        │                                                  │
-        │  ┌──────────────┐  ┌────────────┐  ┌─────────┐  │
-        │  │   Compute    │  │  Network   │  │Monitoring│  │
-        │  │  Service     │  │ Isolation  │  │ Service  │  │
-        │  │ (B01–B03)   │  │ (B04–B06)  │  │(B07–B09) │  │
-        │  │             │  │            │  │          │  │
-        │  │ POST        │  │ Docker     │  │ CPU/Mem  │  │
-        │  │ /instance   │  │ Networks   │  │ metrics  │  │
-        │  │ DELETE      │  │ per project│  │          │  │
-        │  │ /instance   │  │            │  │ GET      │  │
-        │  │ GET         │  │            │  │/metrics  │  │
-        │  │ /instances  │  │            │  │/{proj_id}│  │
-        │  └──────┬───────┘  └────────────┘  └─────────┘  │
-        │         │                                        │
-        │  ┌──────▼──────────────────────────────────────┐ │
-        │  │           Docker Host (single machine)       │ │
-        │  │                                             │ │
-        │  │  [container-1]  [container-2]  [container-N]│ │
-        │  │       │               │               │     │ │
-        │  │  [project-net-A] [project-net-A] [net-B]   │ │
-        │  └─────────────────────────────────────────────┘ │
-        └──────────────────────────────────────────────────┘
+<App>  (React Router)
+│
+├── /login       → <Login />
+├── /register    → <Register />
+│
+└── <ProtectedRoute>        (redirects to /login if no token)
+      └── <Layout>          (sidebar shell)
+            ├── /dashboard  → <Dashboard />
+            ├── /projects   → <Projects />
+            └── /containers → <Containers />
 ```
+
+---
+
+## Internal Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    BROWSER  (React SPA)                         │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │                  AuthContext                              │  │
+│  │  token ─────────────────────────────────────────────┐   │  │
+│  │  user  ─────────────────────────────────────────┐   │   │  │
+│  │  loginCtx() / logoutCtx()                       │   │   │  │
+│  └──────────────────────────────────────┬──────────┼───┼───┘  │
+│                                         │          │   │       │
+│  ┌──────────┐ ┌──────────┐ ┌────────────┴──┐  ┌───▼───▼────┐  │
+│  │ Login /  │ │Dashboard │ │  Projects     │  │ Containers │  │
+│  │ Register │ │          │ │               │  │            │  │
+│  │  Pages   │ │stat cards│ │ list + create │  │deploy/del  │  │
+│  └────┬─────┘ └────┬─────┘ └──────┬────────┘  └─────┬──────┘  │
+│       │            │              │                  │         │
+│  ─────┴────────────┴──────────────┴──────────────────┴──────── │
+│                         API Layer  (src/api/)                   │
+│                                                                 │
+│    ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐   │
+│    │   auth.js   │   │ projects.js  │   │  instances.js    │   │
+│    │             │   │              │   │  (localStorage   │   │
+│    │ login()     │   │ getProjects()│   │   mock)          │   │
+│    │ register()  │   │ createProject│   │                  │   │
+│    │ logout()    │   │ ()           │   │ getInstances()   │   │
+│    └──────┬──────┘   └──────┬───────┘   │ createInstance() │   │
+│           │                │           │ deleteInstance() │   │
+│           │                │           │ getStats()       │   │
+│           │                │           └────────┬─────────┘   │
+│           │                │                    │             │
+└───────────┼────────────────┼────────────────────┼─────────────┘
+            │  Bearer JWT    │  Bearer JWT         │  localStorage
+            │                │                     │  (no network)
+            ▼                ▼                     ▼
+   ┌──────────────────────────────────┐    ┌───────────────────┐
+   │   Backend REST API  (:5000)      │    │  localStorage     │
+   │   (A01–A04, live)                │    │  (mock data store)│
+   │                                  │    │                   │
+   │   POST /login                    │    │  "instances" key  │
+   │   POST /register                 │    │  JSON array       │
+   │   POST /logout                   │    └───────────────────┘
+   │   GET  /project                  │
+   │   POST /project                  │
+   └──────────────────────────────────┘
+```
+
+---
 
 ## Component Descriptions
 
-### Frontend Dashboard (our team — A06)
-| Component | Responsibility |
-|-----------|---------------|
-| `pages/Login.jsx` | Collects credentials, calls `POST /login`, stores JWT in context |
-| `pages/Register.jsx` | Account creation with password-strength validation |
-| `pages/Dashboard.jsx` | Overview: stat cards (projects, containers, CPU, memory), recent items |
-| `pages/Projects.jsx` | CRUD for projects; calls `GET/POST /project` |
-| `pages/Containers.jsx` | Deploy/delete containers; currently mocked via localStorage |
-| `context/AuthContext.jsx` | Global JWT token state, persisted in localStorage |
-| `api/instances.js` | Mock layer — replace with real `fetch()` when BDS-8B is ready |
+### Pages
 
-### Control Plane Backend (A01–A04)
-| Module | Responsibility |
-|--------|---------------|
-| `routes/signup.js` | Validates email/password, hashes password, issues JWT pair |
-| `routes/login.js` | Verifies credentials, issues JWT pair, sets HttpOnly cookie |
-| `routes/projects.js` | JWT-protected CRUD for projects per user |
-| `middleware/auth.js` | Validates `Authorization: Bearer <token>` header |
-| `config/db.js` | Supabase client singleton |
+| Page | File | Responsibility |
+|------|------|---------------|
+| Login | `pages/Login.jsx` | Email + password form; calls `auth.js → login()`; stores JWT via `AuthContext` |
+| Register | `pages/Register.jsx` | Account creation; client-side validation (email domain, password strength); calls `auth.js → register()` |
+| Dashboard | `pages/Dashboard.jsx` | Stat cards (projects, containers, CPU, memory); recent-projects list; recent-containers list |
+| Projects | `pages/Projects.jsx` | Fetches and lists user projects; "New Project" modal calls `projects.js → createProject()` |
+| Containers | `pages/Containers.jsx` | Lists containers (filtered by `?project=` param); "Deploy" modal; delete per card |
 
-### Database (Supabase / PostgreSQL)
-| Table | Columns |
-|-------|---------|
-| `users` | `id`, `email`, `password` (bcrypt), `created_at` |
-| `refresh_tokens` | `id`, `token`, `user_id`, `expires_at`, `created_at` |
-| `projects` | `id`, `name`, `owner_id`, `created_at` |
+### Shared Components
 
-### Data Plane (BDS-8B — planned)
-| Service | API | Description |
-|---------|-----|-------------|
-| Compute (B01–B03) | `POST /instance` | Launch a Docker container with CPU/memory limits |
-| Compute (B01–B03) | `DELETE /instance/:id` | Stop and remove a container |
-| Compute (B01–B03) | `GET /instances` | List containers (optionally filtered by project) |
-| Network (B04–B06) | — | Creates per-project Docker bridge networks |
-| Monitoring (B07–B09) | `GET /metrics/:project_id` | Returns CPU/memory usage per container |
+| Component | File | Responsibility |
+|-----------|------|---------------|
+| Layout | `components/Layout.jsx` | App shell — renders `<Sidebar />` + `<Outlet />` |
+| Sidebar | `components/Sidebar.jsx` | Navigation links; highlights current route |
+| Modal | `components/Modal.jsx` | Generic dialog; closes on Escape key or backdrop click |
+| ProtectedRoute | `components/ProtectedRoute.jsx` | Reads `AuthContext`; redirects to `/login` if no token |
 
-## Data Flow: Container Deployment
+### Context
 
-```
-User clicks "Deploy"
-       │
-       ▼
-Containers.jsx — validates form (name, image, project)
-       │
-       ▼
-api/instances.js → createInstance()
-       │
-       ├── [NOW]   localStorage mock (instant, no network)
-       │
-       └── [LATER] POST /instance  { name, image, project_id }
-                         │
-                         ▼
-                   Compute Service
-                         │
-                         ▼
-                   docker run --name <name>
-                             --network project-<project_id>
-                             --cpus 1 --memory 512m
-                             <image>
-```
+| Context | File | What it holds |
+|---------|------|--------------|
+| AuthContext | `context/AuthContext.jsx` | `token` (JWT string), `user` (id + email), `loginCtx()`, `logoutCtx()`; persists to `localStorage` on every change |
 
-## Data Flow: Authentication
+### API Modules
+
+| Module | File | Real or Mock |
+|--------|------|-------------|
+| auth | `api/auth.js` | **Real** — `fetch()` to `/login`, `/register`, `/logout` |
+| projects | `api/projects.js` | **Real** — `fetch()` to `GET /project`, `POST /project` |
+| instances | `api/instances.js` | **Mock** — reads/writes `localStorage`; no network calls yet |
+
+---
+
+## Data Flows
+
+### Login
 
 ```
-User submits login form
-       │
-       ▼
-api/auth.js → POST /login { email, password }
-       │
-       ▼
-Backend: bcrypt.compare → generateTokens()
-  - accessToken  (JWT, 15 min, in response body)
-  - refreshToken (random hex, 7 days, HttpOnly cookie)
-       │
-       ▼
-AuthContext.loginCtx()
-  - token saved to state + localStorage
-  - user saved to state + localStorage
-       │
-       ▼
-Navigate to /dashboard
+User submits form
+      │
+      ▼
+Login.jsx  →  auth.js → POST /login { email, password }
+      │
+      ▼
+Response: { accessToken, user }
+      │
+      ▼
+AuthContext.loginCtx(token, user)
+  ├── state updated
+  └── localStorage updated
+      │
+      ▼
+React Router → navigate("/dashboard")
 ```
 
-## NIST Cloud Characteristics Mapping
+### Create Project
 
-| Characteristic | Implementation |
-|---------------|----------------|
-| On-Demand Self-Service | Dashboard: users deploy/delete containers without admin |
-| Broad Network Access | Web dashboard accessible over the campus network |
-| Resource Pooling | Multiple users share the same Docker host |
-| Rapid Elasticity | Containers start/stop on demand; scaling planned in Phase 2 |
-| Measured Service | Monitoring service (B07–B09) collects CPU/memory metrics |
+```
+User clicks "New Project" → Modal opens
+      │
+      ▼
+Projects.jsx submits name
+      │
+      ▼
+projects.js → POST /project  { name }
+  Authorization: Bearer <token>  (from AuthContext)
+      │
+      ▼
+Response: { id, name, owner_id, created_at }
+      │
+      ▼
+Projects.jsx appends to local state → list re-renders
+```
+
+### Deploy Container (mock)
+
+```
+User clicks "Deploy" → Modal opens
+      │
+      ▼
+Containers.jsx submits { name, image, project_id }
+      │
+      ▼
+instances.js → createInstance()
+  ├── generates a UUID
+  ├── builds container object { id, name, image, project_id, status: "running", ... }
+  └── writes to localStorage["instances"]
+      │
+      ▼
+Containers.jsx appends to local state → list re-renders
+```
+
+### Delete Container (mock)
+
+```
+User clicks "Delete" on a container card
+      │
+      ▼
+Containers.jsx calls deleteInstance(id)
+      │
+      ▼
+instances.js → filters out the matching entry from localStorage["instances"]
+      │
+      ▼
+Containers.jsx removes item from local state → list re-renders
+```
+
+---
+
+## State Management
+
+There is **no external state library** (no Redux, no Zustand).
+State lives in two places:
+
+| Location | What lives there |
+|----------|-----------------|
+| `AuthContext` (React Context) | JWT token, logged-in user; shared across the entire app |
+| Page-level `useState` | Lists (projects, containers), loading flags, modal open/close state |
+
+This keeps the footprint small and easy to reason about for a team codebase.
+
+---
+
+## Routing Summary
+
+| Path | Component | Protected |
+|------|-----------|:---------:|
+| `/login` | `Login` | No |
+| `/register` | `Register` | No |
+| `/dashboard` | `Dashboard` | ✅ |
+| `/projects` | `Projects` | ✅ |
+| `/containers` | `Containers` | ✅ |
+| `*` | Redirect → `/login` | — |
+
+---
+
+## Mock → Real API Swap Points
+
+When the BDS-8B data plane is ready, **only `src/api/instances.js` needs to
+change**. Replace each function body with a `fetch()` call to the real
+endpoint. No page components need to be modified.
+
+| Function | Planned real endpoint |
+|----------|-----------------------|
+| `getInstances(projectId?)` | `GET /instances?project_id=<id>` |
+| `createInstance(data)` | `POST /instance` |
+| `deleteInstance(id)` | `DELETE /instance/:id` |
+| `getStats()` | derived from `GET /instances` |
