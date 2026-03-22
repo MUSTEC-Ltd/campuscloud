@@ -1,38 +1,36 @@
 const axios = require("axios");
 
+const HEALTH_CHECK_TIMEOUT_MS = 3000;
+
 async function checkServices(services) {
 
   const results = {};
 
-  for (const service in services) {
+  await Promise.all(
+    Object.keys(services).map(async (service) => {
 
-    const urls = services[service];
+      const urls = services[service];
 
-    results[service] = [];
+      results[service] = await Promise.all(
+        urls.map(async (url) => {
 
-    for (const url of urls) {
+          try {
 
-      try {
+            await axios.get(url, { timeout: HEALTH_CHECK_TIMEOUT_MS });
 
-        await axios.get(url);
+            return { url, status: "UP" };
 
-        results[service].push({
-          url,
-          status: "UP"
-        });
+          } catch {
 
-      } catch {
+            return { url, status: "DOWN" };
 
-        results[service].push({
-          url,
-          status: "DOWN"
-        });
+          }
 
-      }
+        })
+      );
 
-    }
-
-  }
+    })
+  );
 
   return results;
 

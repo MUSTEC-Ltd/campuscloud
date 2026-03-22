@@ -1,23 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// Response Types
-
-export interface HealthResponse {
-  status: string;
-}
-
-export interface ServiceInstance {
-  url: string;
-  status: "UP" | "DOWN";
-}
-
-export interface ServicesStatusResponse {
-  [serviceName: string]: ServiceInstance[];
-}
-
-// API Functions
-
-export async function checkHealth(): Promise<HealthResponse> {
+export async function checkHealth() {
   const response = await fetch(`${API_BASE_URL}/health`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
@@ -30,7 +13,7 @@ export async function checkHealth(): Promise<HealthResponse> {
   return response.json();
 }
 
-export async function getServicesStatus(): Promise<ServicesStatusResponse> {
+export async function getServicesStatus() {
   const response = await fetch(`${API_BASE_URL}/services`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },

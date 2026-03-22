@@ -6,7 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "concurrently \"node mocks/auth.js\" \"node mocks/project.js\" \"node mocks/compute.js\" \"node src/server.js\"",
+    "dev": "node src/server.js",
     "test": "echo \"No tests defined\""
   },
   "keywords": [

@@ -53,9 +53,7 @@ api-gateway/
 │   ├── healthCheck.js     # Upstream service health aggregate
 │   └── services.json      # Service Registry configuration (URLs of backend nodes)
 │
-├── mocks/                 # Local mock handlers for testing standalone
-├── package.json
-└── test.js                # Full integration test suite + Stress testing
+└── package.json
 ```
 
 ---
@@ -67,16 +65,13 @@ api-gateway/
    npm install
    ```
 
-2. Start the gateway along with local mock services:
+2. Start the gateway:
    ```bash
    npm run dev
    ```
    *Gateway runs on `http://localhost:3000`*
 
-3. Run the automated test suite (in a separate terminal):
-   ```bash
-   node test.js
-   ```
+3. To test endpoints manually, use PowerShell or Postman (see [Example Requests](#example-requests) below).
 
 ---
 
@@ -98,12 +93,12 @@ To add or modify backend routes, update the `services.json` file. The API Gatewa
 
 When the other teams (A1-A4 for Identity/Project, B1-B3 for Compute) finish their actual microservices, and you are ready to connect the **real frontend** and **real backend** together, follow these steps:
 
-### 1. Connecting the Frontend (Next.js Dashboard)
-The frontend teams need to know where the Gateway is hosted. In the main repository's Next.js `backend` environment, they must create a `.env` file and set the API URL:
+### 1. Connecting the Frontend (React + Vite Dashboard)
+The frontend team needs to know where the Gateway is hosted. In the `frontend/.env` file, set the API URL to point at the gateway:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:3000
 ```
-This env variable automatically configures the typed `services/` wrappers to route all user dashboard actions (login, create project) directly into the API Gateway.
+This configures the frontend API client wrappers (located in `frontend/src/api/gateway/`) to route all user dashboard actions (login, create project) directly into the API Gateway.
 
 ### 2. Connecting the Backend Microservices (Data Plane)
 The API Gateway uses `src/services.json` as its routing table. When teams spin up the real `Auth`, `Project`, and `Compute` services, you must **replace the mock URLs** with their actual host IPs or ports:
@@ -212,7 +207,6 @@ Returned when the backend service is down or fails after 3 retries (500 Internal
 ## Testing & Validation
 
 Test all components using:
-* Automated test script (`node test.js`) for full E2E and Stress Testing (100 req/min Rate Limit testing)
 * PowerShell (`Invoke-RestMethod`)
 * Browser (for GET endpoints like `/health` and `/services`)
 * Postman
@@ -222,7 +216,6 @@ Test all components using:
 ## Notes
 
 * The gateway uses dynamic routing based on URL paths (`/:service/*path`).
-* Backend services are mocked in the `mocks/` folder for local standalone testing.
 * Gateway handles only external client requests; internal services communicate directly when required.
 
 ---
