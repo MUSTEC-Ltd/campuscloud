@@ -1,52 +1,57 @@
-# CampusCloud Frontend Services Wrapper
+# CampusCloud Frontend Gateway Services
 
-This directory contains the API client services used by the Next.js frontend dashboard to communicate with the central API Gateway. It abstracts all HTTP requests, providing typed functions and interfaces for easy integration.
+This directory previously contained API client service wrappers. These have been relocated to `frontend/src/api/gateway/` to align with the actual frontend package (React + Vite).
+
+## New Location
+
+The API client wrappers for communicating with the API Gateway are now in:
+
+```text
+frontend/src/api/gateway/
+├── auth.js      - Login and registration
+├── project.js   - Project creation and listing
+├── compute.js   - Container instance management (launch, list, delete)
+└── health.js    - Gateway health check and backend services status
+```
 
 ## Architecture
 
 ```text
-Frontend Dashboard (Next.js) → Services Wrapper (api.ts) → API Gateway (Port 3000)
+Frontend Dashboard (React + Vite) → Gateway Services (frontend/src/api/gateway/) → API Gateway (Port 3000)
 ```
-
-## Structure
-
-The services are divided by domain:
-
-* `auth/api.ts` - Login and registration logic
-* `project/api.ts` - Project creation and listing
-* `compute/api.ts` - Container instance management (launch, list, delete)
-* `gateway/api.ts` - Gateway health check and backend services status
 
 ## Environment Variables
 
-The services expect the API Gateway URL to be available via environment variables. If not provided, it defaults to localhost.
+The services use `import.meta.env.VITE_API_URL` (the standard Vite env variable). Set it in `frontend/.env`:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:3000
 ```
+
+If not provided, it defaults to `http://localhost:3000`.
 
 ## Usage Example
 
-Import the typed functions directly into your frontend components or server actions:
+Import the functions directly into your frontend components:
 
-```tsx
-import { login } from '@/services/auth/api';
-import { getProjects } from '@/services/project/api';
+```js
+import { login } from './gateway/auth';
+import { getProjects } from './gateway/project';
 
 // Example: Authenticate a user
 const response = await login({ email: "user@example.com", password: "123" });
 console.log(response.token);
 
-// Example: Fetch user projects
-const { projects } = await getProjects();
+// Example: Fetch user projects (pass the JWT token)
+const { projects } = await getProjects(token);
 projects.forEach(p => console.log(p.name));
 ```
 
 ## Error Handling
 
-Each function automatically checks the response status. If the API Gateway or backend service returns an error (or the request fails), the function throws a descriptive error that can be caught in your UI components:
+Each function throws a descriptive error if the API Gateway or backend service returns a non-OK response:
 
-```tsx
+```js
 try {
   await login(credentials);
 } catch (error) {
@@ -55,5 +60,3 @@ try {
 }
 ```
 
-## Note for Developers
-This folder relies on the native `fetch` API and does not require external libraries like `axios`. All request and response types are strictly defined in their respective `api.ts` files, ensuring type safety across the frontend.

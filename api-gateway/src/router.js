@@ -18,23 +18,36 @@ router.all("/:service/*path", async (req, res) => {
   const pathParam = req.params.path;
   const path = Array.isArray(pathParam) ? pathParam.join('/') : pathParam;
 
-  const instance = getServiceInstance(service, services);
+  let instance;
+  try {
+    instance = getServiceInstance(service, services);
+  } catch (err) {
+    return res.status(503).json({ error: err.message });
+  }
 
-  const targetUrl = `${instance}/${path}`;
+  const queryString = new URLSearchParams(req.query).toString();
+  const targetUrl = queryString ? `${instance}/${path}?${queryString}` : `${instance}/${path}`;
 
   console.log(`Forwarding ${req.method} → ${targetUrl}`);
 
   try {
 
-    const data = await forwardRequest(req, targetUrl);
+    const response = await forwardRequest(req, targetUrl);
 
-    res.json(data);
+    res.status(response.status).set(response.headers).send(response.data);
 
   } catch (err) {
 
-    res.status(500).json({
-      error: "Backend service unavailable"
-    });
+    if (err && err.response) {
+      res
+        .status(err.response.status || 500)
+        .set(err.response.headers || {})
+        .send(err.response.data);
+    } else {
+      res.status(500).json({
+        error: "Backend service unavailable"
+      });
+    }
 
   }
 

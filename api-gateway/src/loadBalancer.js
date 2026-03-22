@@ -8,6 +8,10 @@ function getServiceInstance(service, services) {
 
   const instances = services[service];
 
+  if (!instances || instances.length === 0) {
+    throw new Error(`No instances configured for service: ${service}`);
+  }
+
   const index = counters[service] % instances.length;
 
   counters[service]++;

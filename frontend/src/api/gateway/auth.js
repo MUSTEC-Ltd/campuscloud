@@ -1,35 +1,10 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// Request Types
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-}
-
-// Response Types
-
-export interface LoginResponse {
-  message: string;
-  token?: string;
-}
-
-export interface RegisterResponse {
-  message: string;
-}
-
-//API Functions 
-
-export async function login(credentials: LoginRequest): Promise<LoginResponse> {
+export async function login(credentials) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(credentials),
   });
 
@@ -40,10 +15,11 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   return response.json();
 }
 
-export async function register(userData: RegisterRequest): Promise<RegisterResponse> {
+export async function register(userData) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(userData),
   });
 
