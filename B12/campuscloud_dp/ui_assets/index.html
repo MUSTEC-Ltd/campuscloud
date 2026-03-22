@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CampusCloud Demo</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css">
+  </head>
+  <body data-module="hub">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/ui">
+          <span class="brand-mark"></span>
+          <span>CampusCloud Demo</span>
+        </a>
+        <nav class="topnav">
+          <a class="active" href="/ui">Hub</a>
+          <a href="/ui/compute">Compute</a>
+          <a href="/ui/network">Network</a>
+          <a href="/ui/monitoring">Monitoring</a>
+          <a href="/ui/integration">Integration</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero">
+          <p class="eyebrow">Simple Frontend</p>
+          <h1>One page for everything, four pages for the groups.</h1>
+          <p>
+            This is the simple demo frontend for the repo. The home page shows the overall state,
+            and each group has its own page for showing its part separately.
+          </p>
+        </section>
+
+        <section class="panel-grid">
+          <section class="panel half">
+            <div class="panel-header">
+              <div>
+                <h2>Live summary</h2>
+                <p class="panel-subtitle">This comes from the backend right now.</p>
+              </div>
+            </div>
+            <div class="stat-grid" data-summary></div>
+          </section>
+
+          <section class="panel half">
+            <div class="panel-header">
+              <div>
+                <h2>Module shortcuts</h2>
+                <p class="panel-subtitle">Open each group page on its own.</p>
+              </div>
+            </div>
+            <div class="module-grid" data-modules></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Recent tracked instances</h2>
+                <p class="panel-subtitle">Latest items saved by the backend.</p>
+              </div>
+            </div>
+            <div class="list" data-recent></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/ui/assets/dashboard.js"></script>
+  </body>
+</html>

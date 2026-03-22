@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Integration Group Page</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css">
+  </head>
+  <body data-module="integration">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/ui">
+          <span class="brand-mark"></span>
+          <span>CampusCloud Demo</span>
+        </a>
+        <nav class="topnav">
+          <a href="/ui">Hub</a>
+          <a href="/ui/compute">Compute</a>
+          <a href="/ui/network">Network</a>
+          <a href="/ui/monitoring">Monitoring</a>
+          <a class="active" href="/ui/integration">Integration</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <p class="eyebrow">Group Page</p>
+        <h1>Integration support</h1>
+        <p>This page shows the overall app state and how the group parts fit together.</p>
+      </section>
+
+      <section class="panel-grid">
+        <section class="panel half">
+          <div class="panel-header">
+            <div>
+              <h2>Integration query</h2>
+              <p class="panel-subtitle">Project id is optional. Leave it empty if you only want app info.</p>
+            </div>
+          </div>
+          <form class="stack" data-integration-form>
+            <div class="field-group">
+              <label for="integration-project">Project id</label>
+              <input id="integration-project" name="project_id" value="project-a" placeholder="optional">
+            </div>
+            <div class="button-row">
+              <button type="submit">Load integration state</button>
+            </div>
+          </form>
+          <div class="notice" data-integration-notice></div>
+          <div data-integration-status></div>
+        </section>
+
+        <aside class="panel half">
+          <div class="panel-header">
+            <div>
+              <h2>Module docs</h2>
+              <p class="panel-subtitle">These are the integration group files.</p>
+            </div>
+          </div>
+          <div class="docs-list">
+            <a href="/deliverables/integration-support/api-documentation.pdf" target="_blank">API documentation PDF</a>
+            <a href="/deliverables/integration-support/nist-mapping.pdf" target="_blank">NIST mapping PDF</a>
+            <a href="/deliverables/integration-support/architecture-diagram.mmd" target="_blank">Mermaid architecture diagram</a>
+          </div>
+        </aside>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Project snapshot</h2>
+              <p class="panel-subtitle">Shows up only if you give a project id.</p>
+            </div>
+          </div>
+          <div class="list" data-project-snapshot></div>
+        </section>
+      </section>
+    </div>
+
+    <script type="module" src="/ui/assets/integration.js"></script>
+  </body>
+</html>

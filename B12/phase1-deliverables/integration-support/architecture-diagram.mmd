@@ -1,0 +1,7 @@
+flowchart TB
+    START["service startup"] --> DB["init database"]
+    DB --> SHARED["load settings + helpers"]
+    SHARED --> RESYNC["startup resync"]
+    RESYNC --> METRICS["start metrics worker"]
+    METRICS --> API["serve API + UI routes"]
+    API --> TESTS["integration tests check group behavior"]

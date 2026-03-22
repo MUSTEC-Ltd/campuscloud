@@ -1,0 +1,131 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{array,tabularx}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \textbf{Integration Support API Documentation}}\\
+    Team B10--B12
+\end{center}
+
+\section*{Endpoints}
+
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.4cm} >{\raggedright\arraybackslash}p{4.6cm} X}
+\toprule
+Method & Path & Purpose \\
+\midrule
+GET & \texttt{/health} & Service health check \\
+GET & \texttt{/ui/api/summary} & Platform summary snapshot \\
+GET & \texttt{/ui/api/integration} & Integration status plus optional project snapshot \\
+GET & \texttt{/ui}, \texttt{/ui/\{page\}} & HTML pages for central and module views \\
+\bottomrule
+\end{tabularx}
+
+\section*{GET /health}
+
+\textbf{Success (200)}
+\begin{verbatim}
+{"status": "ok"}
+\end{verbatim}
+
+\section*{GET /ui/api/summary}
+
+\textbf{Success (200)}
+
+Returns:
+\texttt{health}, \texttt{active\_instance\_count}, \texttt{status\_breakdown}, \texttt{recent\_instances}, \texttt{modules}.
+
+\texttt{modules} entries include:
+\texttt{slug}, \texttt{title}, \texttt{ui\_path}, \texttt{api\_doc}, \texttt{nist\_doc}.
+
+\textbf{Example request}
+\begin{verbatim}
+GET /ui/api/summary
+\end{verbatim}
+
+\textbf{Example response (200)}
+\begin{verbatim}
+{
+  "health": "ok",
+  "active_instance_count": 2,
+  "status_breakdown": {
+    "running": 1,
+    "stopped": 1
+  },
+  "recent_instances": [
+    {
+      "id": "8f75...",
+      "project_id": "project-a",
+      "status": "running"
+    }
+  ],
+  "modules": [
+    {
+      "slug": "compute",
+      "title": "Compute Service",
+      "ui_path": "/ui/compute",
+      "api_doc": "/deliverables/compute-service/api-documentation.pdf",
+      "nist_doc": "/deliverables/compute-service/nist-mapping.pdf"
+    }
+  ]
+}
+\end{verbatim}
+
+\section*{GET /ui/api/integration}
+
+\textbf{Query parameter}
+\texttt{project\_id} is optional.
+
+\textbf{Success (200)}
+
+Always returns:
+\texttt{health}, \texttt{metrics\_worker\_running}, \texttt{settings}, \texttt{startup\_features}, \texttt{project\_snapshot}.
+
+If \texttt{project\_id} is provided and valid, \texttt{project\_snapshot} includes:
+\texttt{project\_id}, \texttt{instance\_count}, \texttt{status\_breakdown}, \texttt{instances}.
+
+If \texttt{project\_id} is not provided, \texttt{project\_snapshot} is \texttt{null}.
+
+\textbf{Example request}
+\begin{verbatim}
+GET /ui/api/integration?project_id=project-a
+\end{verbatim}
+
+\textbf{Example response (200)}
+\begin{verbatim}
+{
+  "health": "ok",
+  "metrics_worker_running": true,
+  "settings": {
+    "metrics_poll_interval_seconds": 15,
+    "project_network_prefix": "campuscloud-project",
+    "stop_timeout_seconds": 10
+  },
+  "startup_features": [
+    "database initialization",
+    "group files loaded",
+    "startup resync",
+    "background metrics worker"
+  ],
+  "project_snapshot": {
+    "project_id": "project-a",
+    "instance_count": 1,
+    "status_breakdown": {"running": 1},
+    "instances": [
+      {"id": "8f75...", "status": "running"}
+    ]
+  }
+}
+\end{verbatim}
+
+\section*{HTML Routes}
+
+\texttt{/ui} and \texttt{/ui/\{page\}} return HTML pages.  
+Supported \texttt{page} values are \texttt{compute}, \texttt{network}, \texttt{monitoring}, \texttt{integration}.  
+Unknown page values return \texttt{404} with \texttt{"detail":"Page not found"}.
+
+\end{document}

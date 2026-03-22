@@ -1,0 +1,23 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+
+\begin{document}
+
+\begin{center}
+    {\Large \textbf{Integration Support NIST Mapping}}\\
+    Team B10--B12
+\end{center}
+
+This workstream does not align to only one NIST characteristic. Instead, it supports the other characteristics by making the four Phase 1 groups operate reliably as one platform.
+
+The strongest contribution is to \textbf{On-Demand Self-Service}. Self-service is only credible when the platform starts cleanly, keeps its internal state consistent, and continues functioning after restarts. The startup reconciliation logic helps the service recover tracked Docker state, which reduces manual cleanup and keeps the API usable.
+
+There is also a direct relationship to \textbf{Resource Pooling}. Compute, networking, monitoring, and persistence are all sharing one host and one application process. Integration support is the layer that coordinates those shared resources so the system behaves like one controlled cloud service instead of a collection of disconnected features.
+
+\textbf{Measured Service} also benefits because the monitoring worker is started and managed within the same lifecycle as the compute APIs and database state. That makes metrics collection part of the platform itself rather than a separate script somebody has to remember to run.
+
+The assignment explicitly asks for interoperability and conflict-free operation across teams. That is why this workstream matters. Even if it is less visible than the public APIs, it is the piece that keeps the compute, network, and monitoring work from turning into disconnected demos.
+
+\end{document}
