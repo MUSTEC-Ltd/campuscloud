@@ -225,39 +225,6 @@ All documentation for the frontend lives inside `frontend/`:
 | Database | Supabase (PostgreSQL) |
 | Container runtime | Docker (managed by BDS-8B) |
 
----
-
-## Contributors
-
-Thanks to everyone who has contributed to CampusCloud. 🎉
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/burhanahmed1">
-        <img src="https://avatars.githubusercontent.com/burhanahmed1?v=4" width="100px;" alt="Burhan Ahmed"/><br />
-        <sub><b>Burhan Ahmed</b></sub>
-      </a><br />
-      <sub>Team A06 · BDS-8A</sub>
-    </td>
-    <td align="center">
-      <a href="https://github.com/ahmadabdullah">
-        <img src="https://avatars.githubusercontent.com/ahmadabdullah?v=4" width="100px;" alt="Ahmad Abdullah"/><br />
-        <sub><b>Ahmad Abdullah</b></sub>
-      </a><br />
-      <sub>Team A06 · BDS-8A</sub>
-    </td>
-    <td align="center">
-      <a href="https://github.com/MUSTEC-Ltd">
-        <img src="https://avatars.githubusercontent.com/MUSTEC-Ltd?v=4" width="100px;" alt="MUSTEC-Ltd"/><br />
-        <sub><b>MUSTEC-Ltd</b></sub>
-      </a><br />
-      <sub>Organisation</sub>
-    </td>
-  </tr>
-</table>
-
-> **Adding yourself?** Open a PR and add a new `<td>` block with your GitHub username. The avatar URL pattern is `https://avatars.githubusercontent.com/<your-username>?v=4`.
 
 ---
 
