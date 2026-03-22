@@ -1,0 +1,11 @@
+{
+  "auth": [
+    "http://localhost:5001"
+  ],
+  "project": [
+    "http://localhost:5002"
+  ],
+  "compute": [
+    "http://localhost:5003"
+  ]
+}
