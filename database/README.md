@@ -15,3 +15,9 @@ JWT_ACCESS_SECRET=campus_cloud_access_secret_2026_!@#
 JWT_REFRESH_SECRET=campus_cloud_refresh_secret_2026_$%^
 PORT=5000
 ```
+--A11 (Store quota info in the database)
+
+Supbase URL=https://vcljwtfpqxipltsfosjj.supabase.co
+Anon_Key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjbGp3dGZwcXhpcGx0c2Zvc2pqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzOTYxODMsImV4cCI6MjA4ODk3MjE4M30.J_lvWO8Qsj8mGFCBlvvv9bs2auRsB0CWYC5efM9t9Mo
+
+
