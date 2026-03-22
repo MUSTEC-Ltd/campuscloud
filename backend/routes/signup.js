@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
-const supabase = require('../config/db'); // Updated import
+const db = require('../config/db');
 const router = express.Router();
 
 // Helper to generate tokens
@@ -18,12 +18,10 @@ const generateTokens = async (user) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
-  // Store refresh token in Supabase
-  const { error } = await supabase
-    .from('refresh_tokens')
-    .insert([{ token: refreshToken, user_id: user.id, expires_at: expiresAt.toISOString() }]);
-  
-  if (error) throw error;
+  await db.query(
+    'INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES ($1, $2, $3)',
+    [refreshToken, user.id, expiresAt.toISOString()]
+  );
 
   return { accessToken, refreshToken };
 };
@@ -56,9 +54,9 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: errors.array()[0].msg,
-        errors: errors.array() 
+        errors: errors.array()
       });
     }
 
@@ -66,13 +64,12 @@ router.post(
 
     try {
       // Check if user exists
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle(); // Returns null if no user is found
+      const { rows: existing } = await db.query(
+        'SELECT id FROM users WHERE email = $1',
+        [email]
+      );
 
-      if (existingUser) {
+      if (existing.length > 0) {
         return res.status(400).json({ message: 'User already exists' });
       }
 
@@ -81,13 +78,12 @@ router.post(
       const hashedPassword = await bcrypt.hash(password, salt);
 
       // Create user
-      const { data: newUser, error: insertError } = await supabase
-        .from('users')
-        .insert([{ email, password: hashedPassword }])
-        .select('id, email')
-        .single();
+      const { rows } = await db.query(
+        'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
+        [email, hashedPassword]
+      );
 
-      if (insertError) throw insertError;
+      const newUser = rows[0];
       const { accessToken, refreshToken } = await generateTokens(newUser);
 
       // Set cookie
