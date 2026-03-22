@@ -23,6 +23,14 @@ CREATE TABLE IF NOT EXISTS projects (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Index for performance
+-- Add new columns to projects table
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+
+-- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+
+-- Unique constraint: no two active projects with same name per owner
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_project_name
+    ON projects (name, owner_id) WHERE status = 'active';

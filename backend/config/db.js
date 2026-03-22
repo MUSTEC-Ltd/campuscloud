@@ -1,13 +1,14 @@
-const { createClient } = require('@supabase/supabase-js');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const pool = new Pool({
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || 'campuscloud',
+});
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-module.exports = supabase;
+module.exports = {
+  query: (text, params) => pool.query(text, params),
+};
