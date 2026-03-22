@@ -1,0 +1,20 @@
+sequenceDiagram
+    actor User as User/Gateway
+    participant API as FastAPI
+    participant Check as quota callback
+    participant DB as instances table
+    participant Net as network helper
+    participant Docker as DockerHelper
+    participant Engine as Docker Engine
+
+    User->>API: POST /instance
+    API->>Check: allow / deny
+    Check-->>API: result
+    API->>DB: insert status=creating
+    API->>Net: get project network name
+    API->>Docker: create_container(...)
+    Docker->>Engine: pull image + run container
+    Engine-->>Docker: container_id + runtime status
+    Docker-->>API: runtime metadata
+    API->>DB: update status=running
+    API-->>User: 201 Created
