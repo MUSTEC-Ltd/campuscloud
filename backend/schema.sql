@@ -31,6 +31,19 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
 CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
 
--- Unique constraint: no two active projects with same name per owner
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_project_name
-    ON projects (name, owner_id) WHERE status = 'active';
+--A11 code for database (Store quota info in the database)
+
+CREATE TABLE project_quotas (
+    project_id TEXT PRIMARY KEY,
+    max_containers INTEGER DEFAULT 3
+);
+
+CREATE TABLE containers (
+    id SERIAL PRIMARY KEY,
+    project_id TEXT REFERENCES project_quotas(project_id),
+    container_name TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
