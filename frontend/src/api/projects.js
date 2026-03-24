@@ -6,7 +6,7 @@ export async function getProjects(token) {
     credentials: 'include',
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch projects');
+  if (!res.ok) throw new Error(data.message || data.error || 'Failed to fetch projects');
   return data;
 }
 
@@ -21,6 +21,6 @@ export async function createProject(name, token) {
     body: JSON.stringify({ name }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to create project');
+  if (!res.ok) throw new Error(data.message || data.error || 'Failed to create project');
   return data;
 }
