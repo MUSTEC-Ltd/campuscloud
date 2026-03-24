@@ -1,20 +1,22 @@
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
-const db = require('../config/db');
+const { supabase } = require('../config/db');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
 const validateId = param('id').isUUID().withMessage('Invalid project ID');
 
 // @route GET /project
-// @desc Get all projects for logged in user
 router.get('/', auth, async (req, res) => {
   try {
-    const projectsRes = await db.query(
-      "SELECT id, name, description, owner_id, status, created_at FROM projects WHERE owner_id = $1 AND status = 'active'",
-      [req.user.id]
-    );
-    res.json(projectsRes.rows);
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, name, description, owner_id, status, created_at')
+      .eq('owner_id', req.user.id)
+      .eq('status', 'active');
+
+    if (error) throw error;
+    res.json(data);
   } catch (err) {
     console.error('Get projects error:', err.message);
     res.status(500).json({ error: 'Internal server error' });
@@ -22,7 +24,6 @@ router.get('/', auth, async (req, res) => {
 });
 
 // @route GET /project/:id
-// @desc Get a single project by ID
 router.get('/:id', [auth, validateId], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -30,17 +31,20 @@ router.get('/:id', [auth, validateId], async (req, res) => {
   }
 
   const { id } = req.params;
-  const ownerId = req.user.id;
 
   try {
-    const projectRes = await db.query(
-      "SELECT id, name, description, owner_id, status, created_at FROM projects WHERE id = $1 AND owner_id = $2 AND status = 'active'",
-      [id, ownerId]
-    );
-    if (projectRes.rows.length === 0) {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, name, description, owner_id, status, created_at')
+      .eq('id', id)
+      .eq('owner_id', req.user.id)
+      .eq('status', 'active')
+      .single();
+
+    if (error || !data) {
       return res.status(404).json({ error: 'Project not found' });
     }
-    res.json(projectRes.rows[0]);
+    res.json(data);
   } catch (err) {
     console.error('Get project by ID error:', err.message);
     res.status(500).json({ error: 'Internal server error' });
@@ -48,7 +52,6 @@ router.get('/:id', [auth, validateId], async (req, res) => {
 });
 
 // @route POST /project
-// @desc Create a new project
 router.post(
   '/',
   [
@@ -65,38 +68,38 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: errors.array(),
-      });
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
     }
 
     const { name, description = '' } = req.body;
     const ownerId = req.user.id;
 
     try {
-      // Duplicate check — same name + owner with active status
-      const existing = await db.query(
-        "SELECT id FROM projects WHERE name = $1 AND owner_id = $2 AND status = 'active'",
-        [name, ownerId]
-      );
-      if (existing.rows.length > 0) {
+      // Duplicate check
+      const { data: existing } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('name', name)
+        .eq('owner_id', ownerId)
+        .eq('status', 'active');
+
+      if (existing && existing.length > 0) {
         return res.status(409).json({
           error: 'Project name already exists',
           message: `You already have a project named '${name}'.`,
         });
       }
 
-      const projectRes = await db.query(
-        `INSERT INTO projects (name, description, owner_id, status)
-         VALUES ($1, $2, $3, 'active')
-         RETURNING id, name, description, owner_id, status, created_at`,
-        [name, description, ownerId]
-      );
+      const { data: created, error } = await supabase
+        .from('projects')
+        .insert({ name, description, owner_id: ownerId, status: 'active' })
+        .select('id, name, description, owner_id, status, created_at');
+
+      if (error) throw error;
 
       return res.status(201).json({
         message: 'Project created successfully',
-        project: projectRes.rows[0],
+        project: created[0],
       });
     } catch (err) {
       console.error('Create project error:', err.message);
@@ -106,7 +109,6 @@ router.post(
 );
 
 // @route PUT /project/:id
-// @desc Update a project (name and/or description)
 router.put(
   '/:id',
   [
@@ -124,10 +126,7 @@ router.put(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: errors.array(),
-      });
+      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
     }
 
     const { id } = req.params;
@@ -135,23 +134,31 @@ router.put(
 
     try {
       // Check project exists and belongs to user
-      const projectRes = await db.query(
-        "SELECT * FROM projects WHERE id = $1 AND owner_id = $2 AND status = 'active'",
-        [id, ownerId]
-      );
-      if (projectRes.rows.length === 0) {
+      const { data: existing } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', id)
+        .eq('owner_id', ownerId)
+        .eq('status', 'active')
+        .single();
+
+      if (!existing) {
         return res.status(404).json({ error: 'Project not found' });
       }
 
       const { name, description } = req.body;
 
-      // If renaming, check duplicate
-      if (name && name !== projectRes.rows[0].name) {
-        const duplicate = await db.query(
-          "SELECT id FROM projects WHERE name = $1 AND owner_id = $2 AND status = 'active' AND id != $3",
-          [name, ownerId, id]
-        );
-        if (duplicate.rows.length > 0) {
+      // If renaming, check for duplicate
+      if (name && name !== existing.name) {
+        const { data: duplicate } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('name', name)
+          .eq('owner_id', ownerId)
+          .eq('status', 'active')
+          .neq('id', id);
+
+        if (duplicate && duplicate.length > 0) {
           return res.status(409).json({
             error: 'Project name already exists',
             message: `You already have a project named '${name}'.`,
@@ -159,17 +166,23 @@ router.put(
         }
       }
 
-      const updated = await db.query(
-        `UPDATE projects
-         SET name = COALESCE($1, name), description = COALESCE($2, description)
-         WHERE id = $3 AND owner_id = $4
-         RETURNING id, name, description, owner_id, status, created_at`,
-        [name || null, description !== undefined ? description : null, id, ownerId]
-      );
+      // Build update object with only provided fields
+      const updates = {};
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+
+      const { data: updated, error } = await supabase
+        .from('projects')
+        .update(updates)
+        .eq('id', id)
+        .eq('owner_id', ownerId)
+        .select('id, name, description, owner_id, status, created_at');
+
+      if (error) throw error;
 
       return res.json({
         message: 'Project updated successfully',
-        project: updated.rows[0],
+        project: updated[0],
       });
     } catch (err) {
       console.error('Update project error:', err.message);
@@ -179,7 +192,6 @@ router.put(
 );
 
 // @route DELETE /project/:id
-// @desc Delete a project (soft delete — sets status to 'deleted')
 router.delete('/:id', [auth, validateId], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -190,11 +202,16 @@ router.delete('/:id', [auth, validateId], async (req, res) => {
   const ownerId = req.user.id;
 
   try {
-    const result = await db.query(
-      "UPDATE projects SET status = 'deleted' WHERE id = $1 AND owner_id = $2 AND status = 'active'",
-      [id, ownerId]
-    );
-    if (result.rowCount === 0) {
+    const { data, error } = await supabase
+      .from('projects')
+      .update({ status: 'deleted' })
+      .eq('id', id)
+      .eq('owner_id', ownerId)
+      .eq('status', 'active')
+      .select('id');
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
       return res.status(404).json({ error: 'Project not found' });
     }
     return res.json({ message: 'Project deleted successfully' });

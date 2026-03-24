@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
-const db = require('../config/db');
+const { supabase } = require('../config/db');
 const router = express.Router();
 
 // Helper to generate tokens
@@ -18,10 +18,11 @@ const generateTokens = async (user) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
-  await db.query(
-    'INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES ($1, $2, $3)',
-    [refreshToken, user.id, expiresAt.toISOString()]
-  );
+  await supabase.from('refresh_tokens').insert({
+    token: refreshToken,
+    user_id: user.id,
+    expires_at: expiresAt.toISOString(),
+  });
 
   return { accessToken, refreshToken };
 };
@@ -56,7 +57,7 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({
         message: errors.array()[0].msg,
-        errors: errors.array()
+        errors: errors.array(),
       });
     }
 
@@ -64,12 +65,12 @@ router.post(
 
     try {
       // Check if user exists
-      const { rows: existing } = await db.query(
-        'SELECT id FROM users WHERE email = $1',
-        [email]
-      );
+      const { data: existing } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email);
 
-      if (existing.length > 0) {
+      if (existing && existing.length > 0) {
         return res.status(400).json({ message: 'User already exists' });
       }
 
@@ -78,12 +79,14 @@ router.post(
       const hashedPassword = await bcrypt.hash(password, salt);
 
       // Create user
-      const { rows } = await db.query(
-        'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
-        [email, hashedPassword]
-      );
+      const { data: newUsers, error } = await supabase
+        .from('users')
+        .insert({ email, password: hashedPassword })
+        .select('id, email');
 
-      const newUser = rows[0];
+      if (error) throw error;
+      const newUser = newUsers[0];
+
       const { accessToken, refreshToken } = await generateTokens(newUser);
 
       // Set cookie
