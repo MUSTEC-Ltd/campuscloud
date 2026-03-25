@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Network | CampusCloud Console</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css">
+  </head>
+  <body data-module="network">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/ui">
+          <span class="brand-mark"></span>
+          <span>CampusCloud Console</span>
+        </a>
+        <nav class="topnav">
+          <a href="/ui">Overview</a>
+          <a href="/ui/compute">Compute</a>
+          <a class="active" href="/ui/network">Network</a>
+          <a href="/ui/monitoring">Monitoring</a>
+          <a href="/ui/integration">Operations</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <p class="eyebrow">Network Control</p>
+        <h1>Inspect project-level isolation boundaries.</h1>
+        <p>Review the managed network assigned to a project and the workloads currently attached to it.</p>
+      </section>
+
+      <section class="panel-grid">
+        <section class="panel half">
+          <div class="panel-header">
+              <div>
+                <h2>Project lookup</h2>
+                <p class="panel-subtitle">Load the active network state for a single project scope.</p>
+              </div>
+            </div>
+          <form class="stack" data-network-form>
+            <div class="field-group">
+              <label for="network-project">Project ID</label>
+              <input id="network-project" name="project_id" value="project-a">
+            </div>
+            <div class="button-row">
+              <button type="submit">Load Network</button>
+            </div>
+          </form>
+          <div class="notice" data-network-notice></div>
+          <div data-network-summary></div>
+        </section>
+
+        <aside class="panel half">
+          <div class="panel-header">
+              <div>
+                <h2>Isolation policy</h2>
+                <p class="panel-subtitle">Current rules applied to project network boundaries.</p>
+              </div>
+            </div>
+          <div class="stack" data-network-rules></div>
+        </aside>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Attached instances</h2>
+              <p class="panel-subtitle">Workloads currently associated with the selected network.</p>
+            </div>
+          </div>
+          <div class="list" data-network-instances></div>
+        </section>
+      </section>
+    </div>
+
+    <script type="module" src="/ui/assets/network.js"></script>
+  </body>
+</html>
