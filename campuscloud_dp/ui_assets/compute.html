@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Compute | CampusCloud Console</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css">
+  </head>
+  <body data-module="compute">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/ui">
+          <span class="brand-mark"></span>
+          <span>CampusCloud Console</span>
+        </a>
+        <nav class="topnav">
+          <a href="/ui">Overview</a>
+          <a class="active" href="/ui/compute">Compute</a>
+          <a href="/ui/network">Network</a>
+          <a href="/ui/monitoring">Monitoring</a>
+          <a href="/ui/integration">Operations</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <p class="eyebrow">Compute Control</p>
+        <h1>Provision and manage isolated project workloads.</h1>
+        <p>Create, stop, delete, and review container instances with project-scoped resource limits.</p>
+      </section>
+
+      <section class="panel-grid">
+        <section class="panel half">
+          <div class="panel-header">
+              <div>
+                <h2>Provision instance</h2>
+                <p class="panel-subtitle">Submit workload settings and refresh the current project inventory.</p>
+              </div>
+            </div>
+          <form class="stack" data-create-form>
+            <div class="toolbar">
+              <div class="field-group">
+                <label for="project_id">Project ID</label>
+                <input id="project_id" name="project_id" value="project-a">
+              </div>
+              <div class="field-group">
+                <label for="image">Image</label>
+                <input id="image" name="image" value="nginx:alpine">
+              </div>
+              <div class="field-group">
+                <label for="cpu_millicores">CPU Millicores</label>
+                <input id="cpu_millicores" name="cpu_millicores" type="number" value="250" min="1">
+              </div>
+              <div class="field-group">
+                <label for="memory_mb">Memory MB</label>
+                <input id="memory_mb" name="memory_mb" type="number" value="128" min="1">
+              </div>
+              <div class="field-group">
+                <label for="name">Name</label>
+                <input id="name" name="name" placeholder="optional">
+              </div>
+            </div>
+            <div class="button-row">
+              <button type="submit">Create Instance</button>
+              <button class="secondary" type="button" data-refresh>Refresh Inventory</button>
+            </div>
+          </form>
+          <div class="notice" data-compute-notice></div>
+        </section>
+
+        <aside class="panel half">
+          <div class="panel-header">
+            <div>
+              <h2>Provisioning policy</h2>
+              <p class="panel-subtitle">Operational constraints applied during instance creation.</p>
+            </div>
+          </div>
+          <div class="stack">
+            <article class="item-card">Each request is scoped to a single project identifier.</article>
+            <article class="item-card">CPU and memory limits are required for every new instance.</article>
+            <article class="item-card">Instance names are optional and generated automatically when omitted.</article>
+          </div>
+        </aside>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Instance inventory</h2>
+              <p class="panel-subtitle">Current non-deleted instances for the selected project.</p>
+            </div>
+          </div>
+          <div class="list" data-instance-list></div>
+        </section>
+      </section>
+    </div>
+
+    <script type="module" src="/ui/assets/compute.js"></script>
+  </body>
+</html>
