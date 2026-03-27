@@ -233,14 +233,6 @@ All documentation for the frontend lives inside `frontend/`:
 This project is licensed under the [MIT License](LICENSE).
 
 
-## Contributors ❤️
-
-<p align="center">
-  <a href="https://github.com/MUSTEC-Ltd/campuscloud/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=MUSTEC-Ltd/campuscloud" />
-  </a>
-</p>
-
 ---
 
 <div align="center">
