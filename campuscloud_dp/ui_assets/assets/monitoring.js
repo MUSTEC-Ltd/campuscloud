@@ -1,66 +1,76 @@
 import { escapeHtml, formatDate, renderEmpty, requestJson, setNotice } from "./shared.js";
 
-const form = document.querySelector("[data-monitoring-form]");
-const notice = document.querySelector("[data-monitoring-notice]");
-const latest = document.querySelector("[data-latest-metric]");
-const tableBody = document.querySelector("[data-metric-table]");
+const metricsForm = document.querySelector("[data-monitoring-form]");
+const noticeEl = document.querySelector("[data-monitoring-notice]");
+const latestEl = document.querySelector("[data-latest-metric]");
+const samplesBody = document.querySelector("[data-metric-table]");
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await loadMetrics();
+metricsForm.addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  fetchMetrics();
 });
 
-async function loadMetrics() {
-  const projectId = form.project_id.value.trim();
+async function fetchMetrics() {
+  const projectId = metricsForm.project_id.value.trim();
+
   if (!projectId) {
-    renderEmpty(latest, "Enter a project ID to view recent metrics.");
-    tableBody.innerHTML = "";
+    renderEmpty(latestEl, "Please enter a project ID to load metrics.");
+    samplesBody.innerHTML = "";
     return;
   }
 
   try {
-    const data = await requestJson(`/ui/api/metrics?project_id=${encodeURIComponent(projectId)}`);
-    setNotice(notice, `Loaded ${data.sample_count} samples.`, "success");
-    if (!data.latest) {
-      renderEmpty(latest, "No metric samples yet. Start a container and let the collector run.");
-      tableBody.innerHTML = "";
+    const result = await requestJson(
+      `/ui/api/metrics?project_id=${encodeURIComponent(projectId)}`
+    );
+    setNotice(noticeEl, `Fetched ${result.sample_count} sample(s).`, "success");
+
+    if (!result.latest) {
+      renderEmpty(latestEl, "No samples found yet. Deploy a container and wait for the collector to run.");
+      samplesBody.innerHTML = "";
       return;
     }
 
-    latest.innerHTML = `
-      <div class="stat-grid">
-        <div class="stat">
-          <span class="stat-label">Latest CPU</span>
-          <strong class="stat-value">${data.latest.cpu_percent.toFixed(2)}%</strong>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Latest memory</span>
-          <strong class="stat-value">${data.latest.memory_mb.toFixed(2)} MB</strong>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Captured</span>
-          <strong class="stat-value">${escapeHtml(formatDate(data.latest.collected_at))}</strong>
-        </div>
-      </div>
-    `;
-
-    tableBody.innerHTML = data.samples
-      .map(
-        (sample) => `
-          <tr>
-            <td>${escapeHtml(sample.instance_id)}</td>
-            <td>${sample.cpu_percent.toFixed(2)}%</td>
-            <td>${sample.memory_mb.toFixed(2)} MB</td>
-            <td>${escapeHtml(formatDate(sample.collected_at))}</td>
-          </tr>
-        `,
-      )
-      .join("");
-  } catch (error) {
-    setNotice(notice, error.message, "error");
-    renderEmpty(latest, "Could not load monitoring data.");
-    tableBody.innerHTML = "";
+    renderLatestStats(result.latest);
+    renderSamplesTable(result.samples);
+  } catch (err) {
+    setNotice(noticeEl, err.message, "error");
+    renderEmpty(latestEl, "Failed to retrieve monitoring data.");
+    samplesBody.innerHTML = "";
   }
 }
 
-loadMetrics();
+function renderLatestStats(latest) {
+  latestEl.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat">
+        <span class="stat-label">CPU usage</span>
+        <strong class="stat-value">${latest.cpu_percent.toFixed(2)}%</strong>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Memory usage</span>
+        <strong class="stat-value">${latest.memory_mb.toFixed(2)} MB</strong>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Collected</span>
+        <strong class="stat-value">${escapeHtml(formatDate(latest.collected_at))}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function renderSamplesTable(samples) {
+  samplesBody.innerHTML = samples
+    .map((s) => `
+      <tr>
+        <td>${escapeHtml(s.instance_id)}</td>
+        <td>${s.cpu_percent.toFixed(2)}%</td>
+        <td>${s.memory_mb.toFixed(2)} MB</td>
+        <td>${escapeHtml(formatDate(s.collected_at))}</td>
+      </tr>
+    `)
+    .join("");
+}
+
+// Load data on page open
+fetchMetrics();
