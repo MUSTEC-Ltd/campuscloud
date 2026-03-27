@@ -1,39 +1,36 @@
-export async function requestJson(url, options = {}) {
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    ...options,
+/**
+ * Shared utility functions used across CampusCloud UI modules.
+ */
+
+export async function requestJson(url, opts = {}) {
+  const resp = await fetch(url, {
+    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+    ...opts,
   });
 
-  if (response.status === 204) {
-    return null;
-  }
+  if (resp.status === 204) return null;
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const detail = data?.detail || `${response.status} ${response.statusText}`;
-    throw new Error(detail);
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(body?.detail || `${resp.status} ${resp.statusText}`);
   }
-  return data;
+  return body;
 }
 
-export function setNotice(element, message = "", tone = "") {
-  element.textContent = message;
-  element.className = "notice";
-  if (tone) {
-    element.classList.add(tone);
-  }
+export function setNotice(el, msg = "", type = "") {
+  el.textContent = msg;
+  el.className = "notice";
+  if (type) el.classList.add(type);
 }
 
-export function formatDate(value) {
-  if (!value) return "n/a";
-  return new Date(value).toLocaleString();
+export function formatDate(val) {
+  if (!val) return "—";
+  return new Date(val).toLocaleString();
 }
 
-export function escapeHtml(value) {
-  return String(value ?? "")
+export function escapeHtml(text) {
+  const str = String(text ?? "");
+  return str
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -42,11 +39,10 @@ export function escapeHtml(value) {
 }
 
 export function statusBadge(status) {
-  const safe = escapeHtml(status || "unknown");
-  return `<span class="badge ${safe}">${safe}</span>`;
+  const label = escapeHtml(status || "unknown");
+  return `<span class="badge ${label}">${label}</span>`;
 }
 
-export function renderEmpty(target, message) {
-  target.innerHTML = `<div class="empty">${escapeHtml(message)}</div>`;
+export function renderEmpty(container, msg) {
+  container.innerHTML = `<div class="empty">${escapeHtml(msg)}</div>`;
 }
-
