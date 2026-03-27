@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Monitoring | CampusCloud Console</title>
+    <title>Resource Monitoring | CampusCloud Console</title>
     <link rel="stylesheet" href="/ui/assets/styles.css">
   </head>
   <body data-module="monitoring">
@@ -23,26 +23,26 @@
       </header>
 
       <section class="hero">
-        <p class="eyebrow">Runtime Monitoring</p>
+        <p class="eyebrow">Resource Monitoring</p>
         <h1>Review stored resource usage for active workloads.</h1>
-        <p>Inspect CPU and memory samples collected for a project and compare recent observations over time.</p>
+        <p>View CPU and memory samples captured from running containers and track resource consumption across projects.</p>
       </section>
 
       <section class="panel-grid">
         <section class="panel half">
           <div class="panel-header">
-              <div>
-                <h2>Metrics query</h2>
-                <p class="panel-subtitle">Load recent stored samples for a project.</p>
-              </div>
+            <div>
+              <h2>Query metrics</h2>
+              <p class="panel-subtitle">Fetch recently stored samples for a given project.</p>
             </div>
+          </div>
           <form class="stack" data-monitoring-form>
             <div class="field-group">
-              <label for="monitor-project">Project ID</label>
-              <input id="monitor-project" name="project_id" value="project-a">
+              <label for="project-input">Project ID</label>
+              <input id="project-input" name="project_id" value="project-a" placeholder="e.g. project-a">
             </div>
             <div class="button-row">
-              <button type="submit">Load Metrics</button>
+              <button type="submit">Fetch Metrics</button>
             </div>
           </form>
           <div class="notice" data-monitoring-notice></div>
@@ -51,23 +51,23 @@
 
         <aside class="panel half">
           <div class="panel-header">
-              <div>
-                <h2>Collection model</h2>
-                <p class="panel-subtitle">How the platform captures and retains runtime samples.</p>
-              </div>
+            <div>
+              <h2>How collection works</h2>
+              <p class="panel-subtitle">How the platform gathers and stores runtime metrics.</p>
             </div>
+          </div>
           <div class="stack">
-            <article class="item-card">Samples are collected only from running instances with container IDs.</article>
-            <article class="item-card">Returned data is ordered from newest to oldest.</article>
-            <article class="item-card">The latest sample is surfaced separately for rapid inspection.</article>
+            <article class="item-card">Only running instances that have a Docker container ID are sampled.</article>
+            <article class="item-card">Results are sorted from most recent to oldest collection time.</article>
+            <article class="item-card">The most recent sample is highlighted at the top for quick reference.</article>
           </div>
         </aside>
 
         <section class="panel">
           <div class="panel-header">
             <div>
-              <h2>Recent samples</h2>
-              <p class="panel-subtitle">Latest samples are shown first.</p>
+              <h2>Collected samples</h2>
+              <p class="panel-subtitle">Most recent measurements appear first.</p>
             </div>
           </div>
           <div class="table-wrap">
@@ -75,9 +75,9 @@
               <thead>
                 <tr>
                   <th>Instance</th>
-                  <th>CPU</th>
-                  <th>Memory</th>
-                  <th>Captured</th>
+                  <th>CPU %</th>
+                  <th>Memory (MB)</th>
+                  <th>Collected at</th>
                 </tr>
               </thead>
               <tbody data-metric-table></tbody>
