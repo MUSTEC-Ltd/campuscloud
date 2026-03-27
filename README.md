@@ -238,3 +238,44 @@ This project is licensed under the [MIT License](LICENSE).
 <div align="center">
   <sub>Built with ☕ by students of BDS-8A &amp; BDS-8B</sub>
 </div>
+
+<!-- CONTRIBUTORS-START -->
+## 👥 Contributors
+
+Thanks to everyone who has contributed to this project!
+
+<table>
+<tr>
+<td align="center">
+      <a href="https://github.com/ahmedembeddedxx">
+        <img src="https://avatars.githubusercontent.com/u/175879344?v=4&s=80" width="80" height="80" style="border-radius:50%" alt="ahmedembeddedxx"/><br/>
+        <sub><b>ahmedembeddedxx</b></sub>
+      </a>
+    </td>
+<td align="center">
+      <a href="https://github.com/abdullahjvd384">
+        <img src="https://avatars.githubusercontent.com/u/112681457?v=4&s=80" width="80" height="80" style="border-radius:50%" alt="abdullahjvd384"/><br/>
+        <sub><b>abdullahjvd384</b></sub>
+      </a>
+    </td>
+<td align="center">
+      <a href="https://github.com/burhanahmed1">
+        <img src="https://avatars.githubusercontent.com/u/112539282?v=4&s=80" width="80" height="80" style="border-radius:50%" alt="burhanahmed1"/><br/>
+        <sub><b>burhanahmed1</b></sub>
+      </a>
+    </td>
+<td align="center">
+      <a href="https://github.com/rohaan761">
+        <img src="https://avatars.githubusercontent.com/u/195112897?v=4&s=80" width="80" height="80" style="border-radius:50%" alt="rohaan761"/><br/>
+        <sub><b>rohaan761</b></sub>
+      </a>
+    </td>
+<td align="center">
+      <a href="https://github.com/amna45">
+        <img src="https://avatars.githubusercontent.com/u/112508729?v=4&s=80" width="80" height="80" style="border-radius:50%" alt="amna45"/><br/>
+        <sub><b>amna45</b></sub>
+      </a>
+    </td>
+</tr>
+</table>
+<!-- CONTRIBUTORS-END -->
