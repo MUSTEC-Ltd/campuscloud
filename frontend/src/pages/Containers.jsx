@@ -233,9 +233,11 @@ export default function Containers() {
                   required
                 >
                   <option value="">Select a project…</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
+                  {projects
+                    .filter((p) => p.role !== 'viewer')
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
                 </select>
               )}
             </div>
