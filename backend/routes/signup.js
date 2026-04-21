@@ -3,10 +3,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
-const { supabase } = require('../config/db');
+const { pool } = require('../config/db');
 const router = express.Router();
 
-// Helper to generate tokens
 const generateTokens = async (user) => {
   const accessToken = jwt.sign(
     { id: user.id, email: user.email },
@@ -16,18 +15,16 @@ const generateTokens = async (user) => {
 
   const refreshToken = crypto.randomBytes(40).toString('hex');
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+  expiresAt.setDate(expiresAt.getDate() + 7);
 
-  await supabase.from('refresh_tokens').insert({
-    token: refreshToken,
-    user_id: user.id,
-    expires_at: expiresAt.toISOString(),
-  });
+  await pool.query(
+    'INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES ($1, $2, $3)',
+    [refreshToken, user.id, expiresAt.toISOString()]
+  );
 
   return { accessToken, refreshToken };
 };
 
-// @route POST /register
 router.post(
   '/register',
   [
@@ -64,37 +61,27 @@ router.post(
     const { email, password } = req.body;
 
     try {
-      // Check if user exists
-      const { data: existing } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email);
-
-      if (existing && existing.length > 0) {
+      const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+      if (existing.rowCount > 0) {
         return res.status(400).json({ message: 'User already exists' });
       }
 
-      // Hash password
       const salt = await bcrypt.genSalt(12);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      // Create user
-      const { data: newUsers, error } = await supabase
-        .from('users')
-        .insert({ email, password: hashedPassword })
-        .select('id, email');
-
-      if (error) throw error;
-      const newUser = newUsers[0];
+      const inserted = await pool.query(
+        'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
+        [email, hashedPassword]
+      );
+      const newUser = inserted.rows[0];
 
       const { accessToken, refreshToken } = await generateTokens(newUser);
 
-      // Set cookie
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       res.status(201).json({
