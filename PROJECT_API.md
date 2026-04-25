@@ -27,7 +27,7 @@ When a check fails because the caller is a member but the role is too low, the r
 
 ## POST /project
 
-Creates a new project. Caller becomes `owner` (transactionally — the project row and the owner membership row are inserted in the same transaction).
+Creates a new project. Caller becomes `owner` (transactionally).
 
 **Request Body:**
 
@@ -75,8 +75,8 @@ Returns a single active project plus the caller's `role`.
 | Status | Body |
 |--------|------|
 | 200 | `{ id, name, description, owner_id, status, created_at, role }` |
-| 400 | `{ error: "Invalid project ID" }` — non-UUID id |
-| 404 | `{ error: "Project not found" }` — also returned when caller has no membership |
+| 400 | `{ error: "Invalid project ID" }` |
+| 404 | `{ error: "Project not found" }` |
 
 ---
 
@@ -101,7 +101,7 @@ Updates name and/or description.
 
 ## DELETE /project/:id  *(min role: owner)*
 
-Soft-deletes the project (`status='deleted'`). The name becomes available for reuse by the same owner.
+Soft-deletes the project (`status='deleted'`).
 
 | Status | Body |
 |--------|------|
@@ -127,7 +127,7 @@ Lists all members of a project.
 
 ## POST /project/:id/members  *(min role: owner)*
 
-Adds a registered user as a member, or updates their role if they already are one. Promoting another user to `owner` is intentionally not supported here — only `viewer` and `editor` are accepted.
+Adds a registered user as a member, or updates their role if already a member. Only `viewer` and `editor` are accepted (promoting to `owner` is not supported here).
 
 **Request Body:**
 
@@ -141,14 +141,14 @@ Adds a registered user as a member, or updates their role if they already are on
 | 201 | `{ message: "Member added", member: { user_id, role, added_at, email } }` |
 | 400 | Validation failure |
 | 403 | `{ error: "Insufficient permission", ... }` |
-| 404 | `{ error: "User not registered" }` — email not found in `users` |
+| 404 | `{ error: "User not registered" }` |
 | 409 | `{ error: "Cannot change the project owner's role here" }` |
 
 ---
 
 ## DELETE /project/:id/members/:userId  *(min role: owner)*
 
-Removes a member. Cannot remove the last `owner` of the project.
+Removes a member. Cannot remove the last `owner`.
 
 | Status | Body |
 |--------|------|
@@ -156,6 +156,108 @@ Removes a member. Cannot remove the last `owner` of the project.
 | 403 | `{ error: "Insufficient permission", ... }` |
 | 404 | `{ error: "Member not found" }` |
 | 409 | `{ error: "Cannot remove the last owner" }` |
+
+---
+
+## Container Endpoints (BDS-8B Data Plane)
+
+> **Status:** Mocked in frontend localStorage. Replace `src/api/instances.js` function bodies when these are live.
+
+### POST /instance
+
+Launches a new container.
+
+**Request Body:**
+```json
+{ "name": "web-server", "image": "nginx:latest", "project_id": "uuid" }
+```
+
+| Status | Body |
+|--------|------|
+| 201 | `{ id, name, image, project_id, status, cpu, memory, replicas, created_at }` |
+| 400 | Validation failure |
+| 403 | Insufficient project role |
+
+### DELETE /instance/:id
+
+Deletes a running container.
+
+| Status | Body |
+|--------|------|
+| 200 | `{ message: "Container deleted" }` |
+| 403 | Insufficient project role |
+| 404 | Container not found |
+
+### GET /instances
+
+Lists all containers visible to the caller (filtered by project membership).
+
+**Query params:** `?project_id=<uuid>` — filter by project
+
+### PUT /instance/:id/scale  *(Phase 2)*
+
+Updates the replica count for a container.
+
+**Request Body:** `{ "replicas": 3 }` — integer 1–5
+
+| Status | Body |
+|--------|------|
+| 200 | `{ ...container, replicas: 3 }` |
+| 400 | `{ error: "replicas must be between 1 and 5" }` |
+| 403 | Insufficient project role (viewer cannot scale) |
+
+---
+
+## Billing & Metrics Endpoints (Phase 2 — A09–A11)
+
+> **Status:** Computed locally in `src/api/billing.js`. Replace with real calls when the billing engine is live.
+
+### GET /usage/:project_id
+
+Returns resource usage for a project.
+
+**Response (200):**
+```json
+{
+  "project_id": "uuid",
+  "total_cpu_percent": 45,
+  "total_memory_mb": 1024,
+  "container_count": 4,
+  "total_replicas": 7
+}
+```
+
+### GET /billing/:project_id
+
+Returns accrued cost for a project.
+
+**Billing formula:** `Cost = (runtime_minutes × 2) + (memory_MB × 0.01)` per replica
+
+**Response (200):**
+```json
+{
+  "project_id": "uuid",
+  "total_cost": 142.50,
+  "breakdown": [
+    { "container_id": "uuid", "name": "nginx-proxy", "replicas": 2, "cost": 48.20 }
+  ],
+  "currency": "USD"
+}
+```
+
+### GET /metrics/:project_id  *(BDS-8B B07–B09)*
+
+Returns time-series resource metrics for a project.
+
+**Response (200):**
+```json
+{
+  "project_id": "uuid",
+  "samples": [
+    { "timestamp": "...", "cpu_percent": 18, "memory_mb": 512 }
+  ]
+}
+```
 
 ---
 
