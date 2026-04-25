@@ -18,7 +18,7 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await apiLogin(email, password);
-      login(data.accessToken, data.user);
+      login(data.accessToken, data.user, data.demoMode ?? false);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
@@ -73,6 +73,10 @@ export default function Login() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+
+        <div className="auth-demo-hint">
+          <span>Backend offline?</span> Enter any email + password to enter demo mode with sample data.
+        </div>
 
         <p className="auth-switch">
           Don&apos;t have an account?{' '}
