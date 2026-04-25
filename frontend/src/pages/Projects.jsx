@@ -105,7 +105,7 @@ export default function Projects() {
             </thead>
             <tbody>
               {projects.map((p) => {
-                const containerCount = getInstances(p.id).length;
+                const containerCount = getInstances(p.id, projects.map((q) => q.id)).length;
                 const isOwner = p.role === 'owner';
                 return (
                   <tr key={p.id}>

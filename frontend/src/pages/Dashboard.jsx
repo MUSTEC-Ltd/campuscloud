@@ -37,9 +37,9 @@ export default function Dashboard() {
       try {
         const [proj] = await Promise.all([getProjects(token)]);
         setProjects(proj);
-        const inst = getInstances();
-        setInstances(inst);
-        setStats(getStats());
+        const ids = proj.map((p) => p.id);
+        setInstances(getInstances(undefined, ids));
+        setStats(getStats(ids));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -118,7 +118,7 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {recentProjects.map((p) => {
-                  const count = getInstances(p.id).length;
+                  const count = getInstances(p.id, projects.map((q) => q.id)).length;
                   return (
                     <tr key={p.id}>
                       <td className="td-name">{p.name}</td>
