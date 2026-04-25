@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { logout as apiLogout } from '../api/auth';
 import { clearAllInstances } from '../api/instances';
 import { isDemoMode, disableDemoMode } from '../api/mock-seed';
@@ -34,6 +34,24 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('cc_user');
     clearAllInstances();
   }, []);
+
+  // When http.js silently refreshes the access token it writes to localStorage.
+  // Pick up the new value so protected API calls use the fresh token.
+  useEffect(() => {
+    const sync = () => {
+      const stored = localStorage.getItem('cc_token');
+      if (stored && stored !== token) setToken(stored);
+    };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, [token]);
+
+  // Force logout when a refresh attempt fails (session fully expired)
+  useEffect(() => {
+    const handler = () => logoutCtx();
+    window.addEventListener('cc:sessionexpired', handler);
+    return () => window.removeEventListener('cc:sessionexpired', handler);
+  }, [logoutCtx]);
 
   return (
     <AuthContext.Provider
