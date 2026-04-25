@@ -26,7 +26,7 @@ export default function Register() {
     setLoading(true);
     try {
       const data = await apiRegister(email, password);
-      login(data.accessToken, data.user);
+      login(data.accessToken, data.user, false);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
