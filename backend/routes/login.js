@@ -1,29 +1,10 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const { pool } = require('../config/db');
+const { generateTokens, setRefreshCookie, JWT_SECRET } = require('../utils/tokens');
 const router = express.Router();
-
-const generateTokens = async (user) => {
-  const accessToken = jwt.sign(
-    { id: user.id, email: user.email },
-    process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET,
-    { expiresIn: '15m' }
-  );
-
-  const refreshToken = crypto.randomBytes(40).toString('hex');
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
-  await pool.query(
-    'INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES ($1, $2, $3)',
-    [refreshToken, user.id, expiresAt.toISOString()]
-  );
-
-  return { accessToken, refreshToken };
-};
 
 router.post(
   '/login',
@@ -56,13 +37,7 @@ router.post(
       }
 
       const { accessToken, refreshToken } = await generateTokens(user);
-
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      setRefreshCookie(res, refreshToken);
 
       res.json({
         accessToken,
@@ -74,6 +49,37 @@ router.post(
     }
   }
 );
+
+// Refresh access token using the HttpOnly refresh token cookie
+router.post('/refresh', async (req, res) => {
+  const { refreshToken } = req.cookies;
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'No refresh token' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT rt.user_id, u.email
+       FROM refresh_tokens rt
+       JOIN users u ON u.id = rt.user_id
+       WHERE rt.token = $1 AND rt.expires_at > NOW()`,
+      [refreshToken]
+    );
+
+    if (result.rowCount === 0) {
+      res.clearCookie('refreshToken');
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+
+    const { user_id, email } = result.rows[0];
+    const accessToken = jwt.sign({ id: user_id, email }, JWT_SECRET, { expiresIn: '15m' });
+
+    res.json({ accessToken });
+  } catch (err) {
+    console.error('Refresh error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 router.post('/logout', async (req, res) => {
   const { refreshToken } = req.cookies;
