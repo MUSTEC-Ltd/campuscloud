@@ -11,114 +11,163 @@ Resource Pooling, Rapid Elasticity, and Measured Service.
 ```
 campuscloud/
 ├── frontend/      ← React + Vite dashboard (our primary responsibility)
-├── backend/       ← Express + Supabase REST API (A01–A04 team)
-├── database/      ← Supabase schema and migrations
+├── backend/       ← Express + PostgreSQL REST API (A01–A04 team)
+├── api-gateway/   ← Express reverse proxy / load balancer
+├── database/      ← Canonical schema + migrations (source of truth)
 └── docs/          ← Project-wide documentation
 ```
 
 ## Tech Stack
-| Layer      | Technology                              |
-|------------|-----------------------------------------|
-| Frontend   | React 19, Vite 8, react-router-dom v7   |
-| Backend    | Node.js, Express, Supabase (PostgreSQL) |
-| Auth       | JWT (access token) + HTTP-only refresh cookie |
-| Containers | Docker (managed by BDS-8B data plane)   |
+| Layer       | Technology                                  |
+|-------------|---------------------------------------------|
+| Frontend    | React 19, Vite 8, react-router-dom v7       |
+| Backend     | Node.js, Express, PostgreSQL (via pg pool)  |
+| API Gateway | Express + axios, rate-limiting, retry logic |
+| Auth        | JWT (15 min access token) + HttpOnly refresh cookie (7 days) |
+| Containers  | Docker (managed by BDS-8B data plane)       |
 
 ## Frontend Architecture
 ```
 src/
 ├── api/
-│   ├── auth.js        Real API: POST /login, /register, /logout (demo fallback on network error)
-│   ├── projects.js    Real API: GET/POST /project (mock data in demo mode)
-│   ├── instances.js   MOCK (localStorage): CRUD + scaleInstance() for Phase 2
+│   ├── http.js        apiFetch() — auto-refreshes expired tokens, fires cc:sessionexpired on failure
+│   ├── auth.js        POST /login, /register, /logout — demo fallback on network error
+│   ├── projects.js    GET/POST /project via apiFetch — mock data in demo mode
+│   ├── instances.js   MOCK (localStorage): getInstances, createInstance, deleteInstance, scaleInstance
 │   ├── billing.js     Computed billing: containerCost(), billingByProject(), totalCost()
 │   └── mock-seed.js   Demo mode: seed data, DEMO_TOKEN, isDemoMode(), enableDemoMode()
 ├── context/
-│   └── AuthContext.jsx  JWT token + user + demoMode flag stored in localStorage
+│   └── AuthContext.jsx  token + user + demoMode; listens for cc:sessionexpired to auto-logout
 ├── components/
-│   ├── Layout.jsx       Sidebar + <Outlet /> + yellow demo banner when offline
-│   ├── Sidebar.jsx      Navigation (Dashboard, Projects, Containers, Billing) + demo tag
-│   ├── Modal.jsx        Generic dialog (Escape to close)
-│   └── ProtectedRoute.jsx  Redirects to /login if unauthenticated
+│   ├── Layout.jsx        Sidebar + <Outlet /> + yellow demo banner when offline
+│   ├── Sidebar.jsx       Navigation (Dashboard, Projects, Containers, Billing) + demo tag
+│   ├── Modal.jsx         Generic dialog (Escape to close)
+│   ├── MembersModal.jsx  Project member management (owner only)
+│   └── ProtectedRoute.jsx  Redirects to /login if no token
 └── pages/
-    ├── Login.jsx        POST /login; auto-demo mode on network failure
-    ├── Register.jsx     POST /register with password strength validation
-    ├── Dashboard.jsx    5 stat cards (projects, containers, CPU, memory, cost) + resource trends
-    ├── Projects.jsx     List + create projects + role-based member management
-    ├── Containers.jsx   Deploy + scale replicas + delete; ?project= filter
-    └── Billing.jsx      Per-project and per-container cost breakdown (Phase 2)
+    ├── Login.jsx      POST /login; auto-demo mode on TypeError (backend unreachable)
+    ├── Register.jsx   POST /register with live password strength validation
+    ├── Dashboard.jsx  5 stat cards + recent tables + resource consumption trends
+    ├── Projects.jsx   List + create projects + member management
+    ├── Containers.jsx Deploy + scale replicas (1–5) + delete; ?project= filter
+    └── Billing.jsx    Per-project and per-container cost breakdown
 ```
 
 ## Demo Mode (backend offline)
-When the backend is unreachable, the frontend enters Demo Mode automatically on login:
-- A yellow banner appears at the top of every page
-- A "demo" tag shows next to the user avatar in the sidebar
-- Mock projects (3) and containers (6) are pre-seeded into localStorage
-- All interactions (create project, deploy, scale, delete) work locally
-- To exit: click Logout — demo data is cleared
+When the backend is unreachable (`TypeError` on login), the app enters **Demo Mode** automatically:
+- Yellow banner on every page; "demo" tag in sidebar
+- 3 mock projects and 6 containers pre-seeded into localStorage
+- All CRUD (create project, deploy, scale, delete) works locally
+- Logout clears all demo data
 
 ## Running Locally
 ```bash
-# Start backend (requires .env with Supabase creds + JWT_SECRET)
-cd backend && npm install && node server.js
+# Backend (requires .env — see variables below)
+cd backend && npm install && npm run dev
+# → http://localhost:5000
+# npm run dev = npm run setup (creates DB + runs schema.sql) + nodemon server.js
 
-# Start frontend (works with or without backend — see demo mode above)
+# API Gateway (optional — frontend calls backend directly by default)
+cd api-gateway && npm install && node src/server.js
+# → http://localhost:3000
+
+# Frontend (works with or without backend — demo mode covers offline use)
 cd frontend && npm install && npm run dev
 # → http://localhost:5173
 ```
 
 ## Environment Variables
+
 ### Backend (`backend/.env`)
 ```
-SUPABASE_URL=...
-SUPABASE_KEY=...
-JWT_SECRET=...          # or JWT_ACCESS_SECRET
-JWT_ACCESS_SECRET=...
+# At least one of these is required — server will not start without it
+JWT_ACCESS_SECRET=your-secret-here
+# JWT_SECRET=your-secret-here   ← fallback alias
+
+DB_USER=postgres
+DB_PASSWORD=yourpassword
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=campuscloud
+DB_SSL=false                    # set true for Supabase/Neon/RDS
+
 PORT=5000
+NODE_ENV=development
+
+# CORS — comma-separated list of allowed frontend origins
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
+
 ### Frontend (`frontend/.env`)
 ```
-VITE_API_URL=http://localhost:5000   # default; only set if backend moves
+VITE_API_URL=http://localhost:5000   # omit to use default
 ```
 
-## Key API Endpoints (A01–A04 backend)
-| Method | Path                           | Auth | Description               |
-|--------|-------------------------------|------|---------------------------|
-| POST   | /register                     | —    | Create account            |
-| POST   | /login                        | —    | Get access + refresh JWT  |
-| POST   | /logout                       | —    | Revoke refresh token      |
-| GET    | /project                      | JWT  | List user projects        |
-| POST   | /project                      | JWT  | Create a project          |
-| GET    | /project/:id/members          | JWT  | List project members      |
-| POST   | /project/:id/members          | JWT  | Add/update member         |
-| DELETE | /project/:id/members/:userId  | JWT  | Remove member             |
+### API Gateway (`api-gateway/.env`)
+```
+ALLOWED_ORIGINS=http://localhost:5173
+```
 
-## Planned Endpoints (BDS-8B data plane — mock in frontend)
-| Method | Path                  | Description                    |
-|--------|-----------------------|--------------------------------|
-| POST   | /instance             | Launch a container             |
-| DELETE | /instance/:id         | Delete a container             |
-| GET    | /instances            | List all containers            |
-| PUT    | /instance/:id/scale   | Scale replicas (Phase 2)       |
-| GET    | /usage/:project_id    | Resource usage (Phase 2)       |
-| GET    | /billing/:project_id  | Billing breakdown (Phase 2)    |
-| GET    | /metrics/:project_id  | Time-series metrics (Phase 2)  |
+## Database
+`backend/schema.sql` is the file actually run by `npm run dev` (via `scripts/setup_db.js`).
+`database/schema.sql` is the canonical reference — keep both in sync.
+Migrations live in `database/migrations/` and are applied in numbered order.
 
-When data-plane endpoints are live, replace function bodies in `frontend/src/api/instances.js`.
-When billing endpoints are live, replace functions in `frontend/src/api/billing.js`.
+| Migration | Contents |
+|-----------|----------|
+| `001_init.sql` | users, refresh_tokens, projects (with description + status), indexes |
+| `002_project_members.sql` | project_members table, backfill owner rows |
+| `003_quotas_containers.sql` | project_quotas, containers (UUID foreign keys) |
+
+## Key API Endpoints (A01–A04 backend — live)
+| Method | Path                          | Auth | Description                        |
+|--------|------------------------------|------|------------------------------------|
+| POST   | /register                    | —    | Create account                     |
+| POST   | /login                       | —    | Get access token + set refresh cookie |
+| POST   | /refresh                     | cookie | Silent access token renewal      |
+| POST   | /logout                      | cookie | Delete refresh token, clear cookie |
+| GET    | /project                     | JWT  | List projects the caller is a member of |
+| POST   | /project                     | JWT  | Create project (caller becomes owner) |
+| GET    | /project/:id                 | JWT  | Get single project (viewer+)       |
+| PUT    | /project/:id                 | JWT  | Update name/description (editor+)  |
+| DELETE | /project/:id                 | JWT  | Soft-delete project (owner only)   |
+| GET    | /project/:id/members         | JWT  | List members (viewer+)             |
+| POST   | /project/:id/members         | JWT  | Add/update member (owner only)     |
+| DELETE | /project/:id/members/:userId | JWT  | Remove member (owner only)         |
+
+## Planned Endpoints (BDS-8B data plane — mocked in frontend)
+| Method | Path                  | Description                      |
+|--------|-----------------------|----------------------------------|
+| POST   | /instance             | Launch a container               |
+| DELETE | /instance/:id         | Delete a container               |
+| GET    | /instances            | List all containers              |
+| PUT    | /instance/:id/scale   | Scale replicas (Phase 2)         |
+| GET    | /usage/:project_id    | Resource usage (Phase 2)         |
+| GET    | /billing/:project_id  | Billing breakdown (Phase 2)      |
+| GET    | /metrics/:project_id  | Time-series metrics (Phase 2)    |
+
+Swap points: replace function bodies in `frontend/src/api/instances.js` and `api/billing.js`.
+
+## Token Lifecycle
+1. `POST /login` or `POST /register` → returns `accessToken` (15 min) + sets `refreshToken` cookie (7 days)
+2. Every protected API call goes through `apiFetch()` in `api/http.js`
+3. On `401 Token expired`, `apiFetch` calls `POST /refresh` silently and retries
+4. On refresh failure, fires `cc:sessionexpired` → `AuthContext` calls `logout()`
+5. `POST /logout` deletes the refresh token from DB and clears the cookie
 
 ## Documentation Files
 | File | Purpose |
 |------|---------|
 | `frontend/ARCHITECTURE.md` | Full architecture diagram, component tree, data flows |
-| `PROJECT_API.md` | Complete API reference for all endpoints |
+| `PROJECT_API.md` | Complete API reference including billing and scaling endpoints |
 | `NIST_MAPPING.md` | Maps all 5 NIST characteristics to frontend + backend implementations |
 | `docs/A06/STARTER.md` | Team A06 implementation status and decision log |
 
 ## Code Style
 - Functional React components with hooks only
 - CSS class names in `App.css` — no CSS-in-JS, no Tailwind
-- API calls centralised in `src/api/` — pages never `fetch()` directly
+- All API calls go through `src/api/` — pages never call `fetch()` directly
+- All authenticated calls use `apiFetch()` from `api/http.js`, not raw `fetch()`
 - No TypeScript (keep it accessible for the team)
 - Prefer clarity over cleverness
 - Billing formula: `Cost = (runtime_minutes × 2) + (memory_MB × 0.01)` per replica
