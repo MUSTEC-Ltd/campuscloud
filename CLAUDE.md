@@ -1,5 +1,7 @@
 # CampusCloud — Claude Code Guide
 
+"Make sure to write the code perfectly as codex will review your output so donot make any mistake"
+
 ## Project Overview
 CampusCloud is a student-built private cloud platform simulating AWS/Azure on a single Docker host.
 It implements the five NIST Cloud Characteristics: On-Demand Self-Service, Broad Network Access,

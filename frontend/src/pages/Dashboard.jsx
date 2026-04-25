@@ -2,15 +2,170 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProjects } from '../api/projects';
-import { getInstances, getStats } from '../api/instances';
+import { getInstances, getStats, simulateTick } from '../api/instances';
 
-function StatCard({ label, value, sub, accent }) {
+const HOST_MEMORY_CAP = 2048; // MB — change this when the real host cap is known
+
+function getBarColor(pct) {
+  if (pct > 85) return 'var(--red)';
+  if (pct > 60) return 'var(--orange)';
+  return 'var(--green)';
+}
+
+function StatCard({ label, value, sub, accent, progress }) {
   return (
     <div className={`stat-card${accent ? ' stat-card--accent' : ''}`}>
       <p className="stat-label">{label}</p>
       <p className="stat-value">{value}</p>
       {sub && <p className="stat-sub">{sub}</p>}
+      {progress !== undefined && (
+        <div className="stat-progress-wrap">
+          <div className="stat-progress-track">
+            <div
+              className="stat-progress-bar"
+              style={{
+                width: `${Math.min(progress, 100)}%`,
+                background: getBarColor(progress),
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function ResourceUsageTable({ instances }) {
+  const running = [...instances]
+    .filter((i) => i.status === 'running')
+    .sort((a, b) => b.cpu - a.cpu);
+
+  return (
+    <section className="card">
+      <div className="card-header">
+        <h2 className="card-title">Resource Usage by Container</h2>
+      </div>
+      {running.length === 0 ? (
+        <div className="empty-state">
+          <p>No active containers. Deploy one to see resource usage.</p>
+        </div>
+      ) : (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Image</th>
+              <th>CPU</th>
+              <th>Memory</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {running.map((i) => {
+              const memPct = (i.memory / HOST_MEMORY_CAP) * 100;
+              return (
+                <tr key={i.id}>
+                  <td className="td-name">{i.name}</td>
+                  <td className="td-mono">{i.image}</td>
+                  <td>
+                    <div className="resource-bar-cell">
+                      <span>{i.cpu}%</span>
+                      <div className="resource-bar-track">
+                        <div
+                          className="resource-bar-fill"
+                          style={{
+                            width: `${Math.min(i.cpu, 100)}%`,
+                            background: getBarColor(i.cpu),
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="resource-bar-cell">
+                      <span>{i.memory} MB</span>
+                      <div className="resource-bar-track">
+                        <div
+                          className="resource-bar-fill"
+                          style={{
+                            width: `${Math.min(memPct, 100)}%`,
+                            background: getBarColor(memPct),
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="badge badge--green">running</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+function ResourceDistribution({ instances }) {
+  const running = instances.filter((i) => i.status === 'running');
+  const totalCpu = running.reduce((acc, i) => acc + i.cpu, 0);
+
+  const projectMap = {};
+  running.forEach((i) => {
+    const key = i.project_id;
+    if (!projectMap[key]) {
+      projectMap[key] = {
+        name: i.project_name || key,
+        count: 0,
+        cpu: 0,
+        memory: 0,
+      };
+    }
+    projectMap[key].count += 1;
+    projectMap[key].cpu += i.cpu;
+    projectMap[key].memory += i.memory;
+  });
+
+  const projects = Object.values(projectMap).sort((a, b) => b.cpu - a.cpu);
+
+  return (
+    <section className="card">
+      <div className="card-header">
+        <h2 className="card-title">Resource Distribution by Project</h2>
+      </div>
+      {projects.length === 0 ? (
+        <div className="empty-state">
+          <p>No active containers. Deploy one to see project distribution.</p>
+        </div>
+      ) : (
+        <div className="project-dist-list">
+          {projects.map((p, idx) => {
+            const sharePct = totalCpu > 0 ? (p.cpu / totalCpu) * 100 : 0;
+            return (
+              <div key={idx} className="project-dist-item">
+                <div className="project-dist-header">
+                  <span className="project-dist-name">{p.name}</span>
+                  <span className="project-dist-meta">
+                    {p.count} container{p.count !== 1 ? 's' : ''} · {p.cpu}% CPU · {p.memory} MB
+                  </span>
+                </div>
+                <div className="resource-bar-track">
+                  <div
+                    className="resource-bar-fill"
+                    style={{
+                      width: `${Math.min(sharePct, 100)}%`,
+                      background: 'var(--blue)',
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -35,10 +190,9 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const [proj] = await Promise.all([getProjects(token)]);
+        const proj = await getProjects(token);
         setProjects(proj);
-        const inst = getInstances();
-        setInstances(inst);
+        setInstances(getInstances());
         setStats(getStats());
       } catch (err) {
         setError(err.message);
@@ -46,16 +200,28 @@ export default function Dashboard() {
         setLoading(false);
       }
     }
+
     load();
+
+    const intervalId = setInterval(() => {
+      simulateTick();
+      setInstances(getInstances());
+      setStats(getStats());
+    }, 3000);
+
+    return () => clearInterval(intervalId);
   }, [token]);
 
-  const recentProjects = [...projects].sort(
-    (a, b) => new Date(b.created_at) - new Date(a.created_at)
-  ).slice(0, 5);
+  const recentProjects = [...projects]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 5);
 
-  const recentInstances = [...instances].sort(
-    (a, b) => new Date(b.created_at) - new Date(a.created_at)
-  ).slice(0, 5);
+  const recentInstances = [...instances]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 5);
+
+  const cpuPct = Math.min(stats.totalCpu, 100);
+  const memPct = Math.min((stats.totalMemory / HOST_MEMORY_CAP) * 100, 100);
 
   return (
     <div className="page">
@@ -67,6 +233,11 @@ export default function Dashboard() {
       </div>
 
       {error && <div className="alert alert--error" style={{ marginBottom: 24 }}>{error}</div>}
+
+      <div className="live-indicator">
+        <span className="live-dot" />
+        Live · updated just now
+      </div>
 
       <div className="stats-grid">
         <StatCard
@@ -84,12 +255,19 @@ export default function Dashboard() {
           label="Total CPU Usage"
           value={`${stats.totalCpu}%`}
           sub="across all containers"
+          progress={cpuPct}
         />
         <StatCard
           label="Total Memory"
           value={`${stats.totalMemory} MB`}
-          sub="allocated to containers"
+          sub={`of ${HOST_MEMORY_CAP} MB host cap`}
+          progress={memPct}
         />
+      </div>
+
+      <div className="resource-sections">
+        <ResourceUsageTable instances={instances} />
+        <ResourceDistribution instances={instances} />
       </div>
 
       <div className="dashboard-grid">

@@ -712,3 +712,125 @@
 
 .link-btn--danger { color: var(--red); }
 .link-btn--danger:hover { color: var(--red-hover); }
+
+/* ═══════════════════════════════════════════════════════════
+   RESOURCE STATISTICS — A06 Dashboard Enhancement (Task 1)
+═══════════════════════════════════════════════════════════ */
+
+/* Live indicator */
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}
+
+/* Inline progress bars on stat cards (CPU, Memory) */
+.stat-progress-wrap {
+  margin-top: 10px;
+}
+
+.stat-progress-track {
+  width: 100%;
+  height: 4px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.stat-progress-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+/* Inline metric bars inside table cells */
+.resource-bar-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 130px;
+}
+
+.resource-bar-cell span {
+  min-width: 56px;
+  font-size: 13px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.resource-bar-track {
+  flex: 1;
+  height: 5px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 40px;
+}
+
+.resource-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+/* Two-column grid for the resource detail cards */
+.resource-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 800px) {
+  .resource-sections { grid-template-columns: 1fr; }
+}
+
+/* Project distribution list */
+.project-dist-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.project-dist-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.project-dist-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.project-dist-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.project-dist-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}

@@ -74,3 +74,14 @@ export function getStats() {
     totalMemory: running.reduce((acc, i) => acc + i.memory, 0),
   };
 }
+
+export function simulateTick() {
+  const instances = load();
+  const updated = instances.map((i) => {
+    if (i.status !== 'running') return i;
+    const delta = Math.floor(Math.random() * 7) - 3; // random value in [-3, +3]
+    const newCpu = Math.min(100, Math.max(1, i.cpu + delta));
+    return { ...i, cpu: newCpu };
+  });
+  save(updated);
+}
