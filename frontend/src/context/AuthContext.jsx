@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { logout as apiLogout } from '../api/auth';
+import { clearAllInstances } from '../api/instances';
 
 const AuthContext = createContext(null);
 
@@ -26,6 +27,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     localStorage.removeItem('cc_token');
     localStorage.removeItem('cc_user');
+    clearAllInstances();
   }, []);
 
   return (

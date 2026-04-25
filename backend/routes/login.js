@@ -3,10 +3,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
-const { supabase } = require('../config/db');
+const { pool } = require('../config/db');
 const router = express.Router();
 
-// Helper to generate tokens
 const generateTokens = async (user) => {
   const accessToken = jwt.sign(
     { id: user.id, email: user.email },
@@ -16,18 +15,16 @@ const generateTokens = async (user) => {
 
   const refreshToken = crypto.randomBytes(40).toString('hex');
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+  expiresAt.setDate(expiresAt.getDate() + 7);
 
-  await supabase.from('refresh_tokens').insert({
-    token: refreshToken,
-    user_id: user.id,
-    expires_at: expiresAt.toISOString(),
-  });
+  await pool.query(
+    'INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES ($1, $2, $3)',
+    [refreshToken, user.id, expiresAt.toISOString()]
+  );
 
   return { accessToken, refreshToken };
 };
 
-// @route POST /login
 router.post(
   '/login',
   [
@@ -46,12 +43,8 @@ router.post(
     const { email, password } = req.body;
 
     try {
-      const { data: users } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email);
-
-      const user = users && users[0];
+      const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      const user = result.rows[0];
 
       if (!user) {
         return res.status(401).json({ message: 'Invalid credentials' });
@@ -68,7 +61,7 @@ router.post(
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       res.json({
@@ -82,11 +75,10 @@ router.post(
   }
 );
 
-// @route POST /logout
 router.post('/logout', async (req, res) => {
   const { refreshToken } = req.cookies;
   if (refreshToken) {
-    await supabase.from('refresh_tokens').delete().eq('token', refreshToken);
+    await pool.query('DELETE FROM refresh_tokens WHERE token = $1', [refreshToken]);
   }
   res.clearCookie('refreshToken');
   res.json({ message: 'Logged out successfully' });

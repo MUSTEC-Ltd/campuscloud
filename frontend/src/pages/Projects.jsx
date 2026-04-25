@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getProjects, createProject } from '../api/projects';
 import { getInstances } from '../api/instances';
 import Modal from '../components/Modal';
+import MembersModal from '../components/MembersModal';
 
 function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -14,6 +15,12 @@ function timeAgo(iso) {
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
 }
+
+const ROLE_BADGE = {
+  owner: 'badge--green',
+  editor: 'badge--gray',
+  viewer: 'badge--gray',
+};
 
 export default function Projects() {
   const { token } = useAuth();
@@ -26,6 +33,7 @@ export default function Projects() {
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [membersFor, setMembersFor] = useState(null);
 
   const load = async () => {
     try {
@@ -89,17 +97,24 @@ export default function Projects() {
             <thead>
               <tr>
                 <th>Project Name</th>
+                <th>Role</th>
                 <th>Containers</th>
                 <th>Created</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {projects.map((p) => {
-                const containerCount = getInstances(p.id).length;
+              {(() => {
+                const accessibleIds = projects.map((q) => q.id);
+                return projects.map((p) => {
+                const containerCount = getInstances(p.id, accessibleIds).length;
+                const isOwner = p.role === 'owner';
                 return (
                   <tr key={p.id}>
                     <td className="td-name">{p.name}</td>
+                    <td>
+                      <span className={`badge ${ROLE_BADGE[p.role] || 'badge--gray'}`}>{p.role}</span>
+                    </td>
                     <td>
                       <span className={`badge ${containerCount > 0 ? 'badge--green' : 'badge--gray'}`}>
                         {containerCount} container{containerCount !== 1 ? 's' : ''}
@@ -113,10 +128,18 @@ export default function Projects() {
                       >
                         View containers
                       </button>
+                      {' '}
+                      <button
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => setMembersFor(p)}
+                      >
+                        {isOwner ? 'Manage members' : 'View members'}
+                      </button>
                     </td>
                   </tr>
                 );
-              })}
+                });
+              })()}
             </tbody>
           </table>
         )}
@@ -153,6 +176,13 @@ export default function Projects() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {membersFor && (
+        <MembersModal
+          project={membersFor}
+          onClose={() => { setMembersFor(null); load(); }}
+        />
       )}
     </div>
   );

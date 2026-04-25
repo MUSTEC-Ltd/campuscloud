@@ -4,7 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { getProjects } from '../api/projects';
 import { getInstances, getStats, simulateTick } from '../api/instances';
 
-const HOST_MEMORY_CAP = 2048; // MB — change this when the real host cap is known
+const DEFAULT_HOST_MEMORY_CAP_MB = 2048;
+const configuredHostMemoryCap = Number(import.meta.env.VITE_HOST_MEMORY_CAP_MB);
+const HOST_MEMORY_CAP =
+  Number.isFinite(configuredHostMemoryCap) && configuredHostMemoryCap > 0
+    ? configuredHostMemoryCap
+    : DEFAULT_HOST_MEMORY_CAP_MB;
 
 function getBarColor(pct) {
   if (pct > 85) return 'var(--red)';
@@ -117,6 +122,7 @@ function ResourceDistribution({ instances }) {
     const key = i.project_id;
     if (!projectMap[key]) {
       projectMap[key] = {
+        id: key,
         name: i.project_name || key,
         count: 0,
         cpu: 0,
@@ -141,10 +147,10 @@ function ResourceDistribution({ instances }) {
         </div>
       ) : (
         <div className="project-dist-list">
-          {projects.map((p, idx) => {
+          {projects.map((p) => {
             const sharePct = totalCpu > 0 ? (p.cpu / totalCpu) * 100 : 0;
             return (
-              <div key={idx} className="project-dist-item">
+              <div key={p.id} className="project-dist-item">
                 <div className="project-dist-header">
                   <span className="project-dist-name">{p.name}</span>
                   <span className="project-dist-meta">
@@ -192,25 +198,34 @@ export default function Dashboard() {
       try {
         const proj = await getProjects(token);
         setProjects(proj);
-        setInstances(getInstances());
-        setStats(getStats());
+        const ids = proj.map((p) => p.id);
+        setInstances(getInstances(undefined, ids));
+        setStats(getStats(ids));
       } catch (err) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     }
-
     load();
-
-    const intervalId = setInterval(() => {
-      simulateTick();
-      setInstances(getInstances());
-      setStats(getStats());
-    }, 3000);
-
-    return () => clearInterval(intervalId);
   }, [token]);
+
+  const accessibleIds = projects.map((p) => p.id);
+
+  useEffect(() => {
+    if (accessibleIds.length === 0) return;
+    const ids = accessibleIds;
+    const intervalId = setInterval(() => {
+      try {
+        simulateTick();
+        setInstances(getInstances(undefined, ids));
+        setStats(getStats(ids));
+      } catch (err) {
+        console.error('Failed to simulate dashboard tick:', err);
+      }
+    }, 3000);
+    return () => clearInterval(intervalId);
+  }, [accessibleIds.join(',')]);
 
   const recentProjects = [...projects]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -236,7 +251,7 @@ export default function Dashboard() {
 
       <div className="live-indicator">
         <span className="live-dot" />
-        Live · updated just now
+        Live · updates every 3s
       </div>
 
       <div className="stats-grid">
@@ -296,7 +311,7 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {recentProjects.map((p) => {
-                  const count = getInstances(p.id).length;
+                  const count = getInstances(p.id, accessibleIds).length;
                   return (
                     <tr key={p.id}>
                       <td className="td-name">{p.name}</td>
