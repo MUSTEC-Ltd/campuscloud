@@ -57,6 +57,19 @@ export default function MembersModal({ project, onClose }) {
     }
   };
 
+  const handleRoleChange = async (memberEmail, newRole) => {
+    setBusy(true);
+    setErr('');
+    try {
+      await addProjectMember(project.id, { email: memberEmail, role: newRole }, token);
+      await load();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Modal title={`Members — ${project.name}`} onClose={onClose}>
       {err && <div className="alert alert--error" style={{ marginBottom: 16 }}>{err}</div>}
@@ -72,7 +85,22 @@ export default function MembersModal({ project, onClose }) {
             {members.map((m) => (
               <tr key={m.user_id}>
                 <td className="td-name">{m.email}</td>
-                <td><span className={`badge ${m.role === 'owner' ? 'badge--green' : 'badge--gray'}`}>{m.role}</span></td>
+                <td>
+                  {canManage && m.role !== 'owner' ? (
+                    <select
+                      className="form-input"
+                      style={{ padding: '4px 8px', height: 'auto' }}
+                      value={m.role}
+                      disabled={busy}
+                      onChange={(e) => handleRoleChange(m.email, e.target.value)}
+                    >
+                      <option value="viewer">viewer</option>
+                      <option value="editor">editor</option>
+                    </select>
+                  ) : (
+                    <span className={`badge ${m.role === 'owner' ? 'badge--green' : 'badge--gray'}`}>{m.role}</span>
+                  )}
+                </td>
                 {canManage && (
                   <td>
                     {m.role === 'owner' ? (
