@@ -712,3 +712,182 @@
 
 .link-btn--danger { color: var(--red); }
 .link-btn--danger:hover { color: var(--red-hover); }
+
+/* ═══════════════════════════════════════════════════════════
+   DEMO MODE BANNER
+═══════════════════════════════════════════════════════════ */
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 32px;
+  background: rgba(234, 179, 8, 0.08);
+  border-bottom: 1px solid rgba(234, 179, 8, 0.25);
+  font-size: 12.5px;
+  color: #facc15;
+}
+
+.demo-banner svg { flex-shrink: 0; opacity: 0.8; }
+
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR DEMO INDICATORS
+═══════════════════════════════════════════════════════════ */
+.sidebar-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sidebar-demo-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: #facc15;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-avatar--demo {
+  background: rgba(234, 179, 8, 0.7);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH — DEMO HINT
+═══════════════════════════════════════════════════════════ */
+.auth-demo-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 10px 14px;
+  background: rgba(234, 179, 8, 0.06);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.auth-demo-hint span { color: #facc15; font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════════
+   STATS GRID — 5-COLUMN VARIANT
+═══════════════════════════════════════════════════════════ */
+.stats-grid--5 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+@media (max-width: 1100px) {
+  .stats-grid--5 { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 700px) {
+  .stats-grid--5 { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat-card--green {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.stat-card--green .stat-value { color: #4ade80; }
+
+/* ═══════════════════════════════════════════════════════════
+   BILLING
+═══════════════════════════════════════════════════════════ */
+.billing-total-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+}
+
+.billing-total-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.billing-total-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #4ade80;
+  letter-spacing: -0.5px;
+}
+
+.billing-cost {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4ade80;
+}
+
+.billing-cost--sm {
+  font-size: 12px;
+}
+
+.billing-project-cost {
+  display: flex;
+  align-items: center;
+}
+
+.billing-formula {
+  padding: 14px 20px;
+}
+
+.billing-formula-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.billing-formula-code {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CONTAINER SCALE CONTROLS
+═══════════════════════════════════════════════════════════ */
+.scale-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scale-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.scale-btn:not(:disabled):hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: var(--blue);
+}
+
+.scale-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.scale-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 16px;
+  text-align: center;
+}
