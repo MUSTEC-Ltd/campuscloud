@@ -5,7 +5,8 @@ const auth = require('../middleware/auth');
 const { requireProjectRole } = require('../middleware/projectAccess');
 const router = express.Router();
 
-const validateId = param('id').isUUID().withMessage('Invalid project ID');
+// Note: project :id UUID validation is handled inside requireProjectRole,
+// so it is not duplicated as an express-validator chain here.
 const PROJECT_COLS = 'p.id, p.name, p.description, p.owner_id, p.status, p.created_at';
 
 // List projects the caller is a member of (any role)
@@ -27,7 +28,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Read a single project — viewer or higher
-router.get('/:id', [auth, validateId, requireProjectRole('viewer')], (req, res) => {
+router.get('/:id', [auth, requireProjectRole('viewer')], (req, res) => {
   res.json(req.project);
 });
 
@@ -104,7 +105,6 @@ router.put(
   '/:id',
   [
     auth,
-    validateId,
     requireProjectRole('editor'),
     body('name')
       .optional()
@@ -166,7 +166,7 @@ router.put(
 );
 
 // Delete (soft) — owner only
-router.delete('/:id', [auth, validateId, requireProjectRole('owner')], async (req, res) => {
+router.delete('/:id', [auth, requireProjectRole('owner')], async (req, res) => {
   try {
     await pool.query(
       `UPDATE projects SET status = 'deleted' WHERE id = $1`,
@@ -181,7 +181,7 @@ router.delete('/:id', [auth, validateId, requireProjectRole('owner')], async (re
 
 // ----- Member management -----
 
-router.get('/:id/members', [auth, validateId, requireProjectRole('viewer')], async (req, res) => {
+router.get('/:id/members', [auth, requireProjectRole('viewer')], async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT m.user_id, u.email, m.role, m.added_at
@@ -202,7 +202,6 @@ router.post(
   '/:id/members',
   [
     auth,
-    validateId,
     requireProjectRole('owner'),
     body('email').isEmail().withMessage('Valid email required'),
     body('role').isIn(['viewer', 'editor']).withMessage("Role must be 'viewer' or 'editor'"),
@@ -248,7 +247,6 @@ router.delete(
   '/:id/members/:userId',
   [
     auth,
-    validateId,
     param('userId').isUUID().withMessage('Invalid user ID'),
     requireProjectRole('owner'),
   ],

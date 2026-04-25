@@ -141,8 +141,10 @@ export default function Containers() {
               </tr>
             </thead>
             <tbody>
-              {instances.map((inst) => {
-                const proj = projects.find((p) => p.id === inst.project_id);
+              {(() => {
+                const projectsById = new Map(projects.map((p) => [p.id, p]));
+                return instances.map((inst) => {
+                const proj = projectsById.get(inst.project_id);
                 const canDelete = proj && proj.role !== 'viewer';
                 return (
                   <tr key={inst.id}>
@@ -171,7 +173,8 @@ export default function Containers() {
                     </td>
                   </tr>
                 );
-              })}
+                });
+              })()}
             </tbody>
           </table>
         )}

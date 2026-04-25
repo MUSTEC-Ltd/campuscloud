@@ -49,6 +49,7 @@ export default function Dashboard() {
     load();
   }, [token]);
 
+  const accessibleIds = projects.map((p) => p.id);
   const recentProjects = [...projects].sort(
     (a, b) => new Date(b.created_at) - new Date(a.created_at)
   ).slice(0, 5);
@@ -118,7 +119,7 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {recentProjects.map((p) => {
-                  const count = getInstances(p.id, projects.map((q) => q.id)).length;
+                  const count = getInstances(p.id, accessibleIds).length;
                   return (
                     <tr key={p.id}>
                       <td className="td-name">{p.name}</td>
