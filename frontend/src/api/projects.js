@@ -1,6 +1,5 @@
+import { apiFetch } from './http';
 import { isDemoMode, getDemoProjects, saveDemoProjects, DEMO_TOKEN, DEMO_USER_ID } from './mock-seed';
-
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000';
 
 async function jsonOr(res, defaultMessage) {
   const data = await res.json().catch(() => ({}));
@@ -15,10 +14,7 @@ function isDemo(token) {
 export async function getProjects(token) {
   if (isDemo(token)) return getDemoProjects();
   try {
-    const res = await fetch(`${BASE_URL}/project`, {
-      headers: { Authorization: `Bearer ${token}` },
-      credentials: 'include',
-    });
+    const res = await apiFetch('/project', {}, token);
     return jsonOr(res, 'Failed to fetch projects');
   } catch (err) {
     if (err instanceof TypeError) return getDemoProjects();
@@ -41,15 +37,10 @@ export async function createProject(name, token) {
     saveDemoProjects([...projects, newProject]);
     return { message: 'Project created', project: newProject };
   }
-  const res = await fetch(`${BASE_URL}/project`, {
+  const res = await apiFetch('/project', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    credentials: 'include',
     body: JSON.stringify({ name }),
-  });
+  }, token);
   return jsonOr(res, 'Failed to create project');
 }
 
@@ -57,33 +48,23 @@ export async function getProjectMembers(projectId, token) {
   if (isDemo(token)) {
     return [{ user_id: DEMO_USER_ID, email: 'demo@campuscloud.local', role: 'owner', added_at: new Date().toISOString() }];
   }
-  const res = await fetch(`${BASE_URL}/project/${projectId}/members`, {
-    headers: { Authorization: `Bearer ${token}` },
-    credentials: 'include',
-  });
+  const res = await apiFetch(`/project/${projectId}/members`, {}, token);
   return jsonOr(res, 'Failed to load members');
 }
 
 export async function addProjectMember(projectId, { email, role }, token) {
   if (isDemo(token)) throw new Error('Member management is disabled in demo mode.');
-  const res = await fetch(`${BASE_URL}/project/${projectId}/members`, {
+  const res = await apiFetch(`/project/${projectId}/members`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    credentials: 'include',
     body: JSON.stringify({ email, role }),
-  });
+  }, token);
   return jsonOr(res, 'Failed to add member');
 }
 
 export async function removeProjectMember(projectId, userId, token) {
   if (isDemo(token)) throw new Error('Member management is disabled in demo mode.');
-  const res = await fetch(`${BASE_URL}/project/${projectId}/members/${userId}`, {
+  const res = await apiFetch(`/project/${projectId}/members/${userId}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-    credentials: 'include',
-  });
+  }, token);
   return jsonOr(res, 'Failed to remove member');
 }
