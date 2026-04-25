@@ -25,7 +25,23 @@ export default function MembersModal({ project, onClose }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    let active = true;
+    setMembers([]);
+    setErr('');
+    setLoading(true);
+    (async () => {
+      try {
+        const next = await getProjectMembers(project.id, token);
+        if (active) setMembers(next);
+      } catch (e) {
+        if (active) setErr(e.message);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [project.id, token]);
 
   const handleAdd = async (e) => {
     e.preventDefault();

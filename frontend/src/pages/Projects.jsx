@@ -104,8 +104,10 @@ export default function Projects() {
               </tr>
             </thead>
             <tbody>
-              {projects.map((p) => {
-                const containerCount = getInstances(p.id, projects.map((q) => q.id)).length;
+              {(() => {
+                const accessibleIds = projects.map((q) => q.id);
+                return projects.map((p) => {
+                const containerCount = getInstances(p.id, accessibleIds).length;
                 const isOwner = p.role === 'owner';
                 return (
                   <tr key={p.id}>
@@ -136,7 +138,8 @@ export default function Projects() {
                     </td>
                   </tr>
                 );
-              })}
+                });
+              })()}
             </tbody>
           </table>
         )}

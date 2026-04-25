@@ -75,7 +75,7 @@ Returns a single active project plus the caller's `role`.
 | Status | Body |
 |--------|------|
 | 200 | `{ id, name, description, owner_id, status, created_at, role }` |
-| 400 | `{ error: "Validation failed", details: [...] }` — non-UUID id |
+| 400 | `{ error: "Invalid project ID" }` — non-UUID id |
 | 404 | `{ error: "Project not found" }` — also returned when caller has no membership |
 
 ---
