@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProjects } from '../api/projects';
 import { getInstances, getStats } from '../api/instances';
+import { billingByProject, totalCost, formatCost } from '../api/billing';
 
-function StatCard({ label, value, sub, accent }) {
+function StatCard({ label, value, sub, accent, color }) {
   return (
-    <div className={`stat-card${accent ? ' stat-card--accent' : ''}`}>
+    <div className={`stat-card${accent ? ' stat-card--accent' : ''}${color ? ` stat-card--${color}` : ''}`}>
       <p className="stat-label">{label}</p>
       <p className="stat-value">{value}</p>
       {sub && <p className="stat-sub">{sub}</p>}
@@ -28,18 +29,21 @@ export default function Dashboard() {
   const { token, user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [instances, setInstances] = useState([]);
-  const [stats, setStats] = useState({ total: 0, running: 0, totalCpu: 0, totalMemory: 0 });
+  const [stats, setStats] = useState({ total: 0, running: 0, totalCpu: 0, totalMemory: 0, totalReplicas: 0 });
+  const [billing, setBilling] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     async function load() {
       try {
-        const [proj] = await Promise.all([getProjects(token)]);
+        const proj = await getProjects(token);
         setProjects(proj);
         const ids = proj.map((p) => p.id);
-        setInstances(getInstances(undefined, ids));
+        const inst = getInstances(undefined, ids);
+        setInstances(inst);
         setStats(getStats(ids));
+        setBilling(billingByProject(inst, proj));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -50,13 +54,13 @@ export default function Dashboard() {
   }, [token]);
 
   const accessibleIds = projects.map((p) => p.id);
-  const recentProjects = [...projects].sort(
-    (a, b) => new Date(b.created_at) - new Date(a.created_at)
-  ).slice(0, 5);
-
-  const recentInstances = [...instances].sort(
-    (a, b) => new Date(b.created_at) - new Date(a.created_at)
-  ).slice(0, 5);
+  const recentProjects = [...projects]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 5);
+  const recentInstances = [...instances]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 5);
+  const runningCost = totalCost(instances);
 
   return (
     <div className="page">
@@ -65,11 +69,14 @@ export default function Dashboard() {
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">Welcome back, {user?.email}</p>
         </div>
+        <Link to="/billing" className="btn btn--ghost">
+          View Billing
+        </Link>
       </div>
 
       {error && <div className="alert alert--error" style={{ marginBottom: 24 }}>{error}</div>}
 
-      <div className="stats-grid">
+      <div className="stats-grid stats-grid--5">
         <StatCard
           label="Total Projects"
           value={loading ? '—' : projects.length}
@@ -78,18 +85,24 @@ export default function Dashboard() {
         <StatCard
           label="Running Containers"
           value={stats.running}
-          sub={`${stats.total} total deployed`}
+          sub={`${stats.totalReplicas ?? stats.total} total replicas`}
           accent
         />
         <StatCard
           label="Total CPU Usage"
           value={`${stats.totalCpu}%`}
-          sub="across all containers"
+          sub="across all replicas"
         />
         <StatCard
           label="Total Memory"
           value={`${stats.totalMemory} MB`}
-          sub="allocated to containers"
+          sub="allocated to replicas"
+        />
+        <StatCard
+          label="Accrued Cost"
+          value={loading ? '—' : formatCost(runningCost)}
+          sub="runtime billing estimate"
+          color="green"
         />
       </div>
 
@@ -155,7 +168,7 @@ export default function Dashboard() {
                 <tr>
                   <th>Name</th>
                   <th>Image</th>
-                  <th>Status</th>
+                  <th>Replicas</th>
                   <th>Memory</th>
                 </tr>
               </thead>
@@ -164,8 +177,10 @@ export default function Dashboard() {
                   <tr key={i.id}>
                     <td className="td-name">{i.name}</td>
                     <td className="td-mono">{i.image}</td>
-                    <td><span className="badge badge--green">running</span></td>
-                    <td className="td-muted">{i.memory} MB</td>
+                    <td>
+                      <span className="badge badge--green">{i.replicas ?? 1}×</span>
+                    </td>
+                    <td className="td-muted">{i.memory * (i.replicas ?? 1)} MB</td>
                   </tr>
                 ))}
               </tbody>
@@ -173,6 +188,39 @@ export default function Dashboard() {
           )}
         </section>
       </div>
+
+      {billing.length > 0 && (
+        <section className="card" style={{ marginTop: 16 }}>
+          <div className="card-header">
+            <h2 className="card-title">Resource Consumption by Project</h2>
+            <Link to="/billing" className="card-link">Full billing</Link>
+          </div>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Containers</th>
+                <th>CPU Usage</th>
+                <th>Memory</th>
+                <th>Accrued Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {billing.map(({ project, containers, cost, cpu, memory }) => (
+                <tr key={project.id}>
+                  <td className="td-name">{project.name}</td>
+                  <td className="td-muted">{containers.length}</td>
+                  <td className="td-muted">{cpu}%</td>
+                  <td className="td-muted">{memory} MB</td>
+                  <td>
+                    <span className="billing-cost">{formatCost(cost)}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
     </div>
   );
 }

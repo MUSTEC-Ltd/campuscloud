@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Containers from './pages/Containers';
+import Billing from './pages/Billing';
 import './App.css';
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/containers" element={<Containers />} />
+          <Route path="/billing" element={<Billing />} />
         </Route>
       </Route>
 

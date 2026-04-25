@@ -30,6 +30,15 @@ function IconContainers() {
   );
 }
 
+function IconBilling() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+    </svg>
+  );
+}
+
 function IconLogout() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -44,10 +53,11 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', Icon: IconDashboard },
   { to: '/projects', label: 'Projects', Icon: IconProjects },
   { to: '/containers', label: 'Containers', Icon: IconContainers },
+  { to: '/billing', label: 'Billing', Icon: IconBilling },
 ];
 
 export default function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, demoMode, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -79,8 +89,11 @@ export default function Sidebar() {
 
       <div className="sidebar-footer">
         <div className="sidebar-user">
-          <div className="sidebar-avatar">{initials}</div>
-          <span className="sidebar-email" title={user?.email}>{user?.email}</span>
+          <div className={`sidebar-avatar${demoMode ? ' sidebar-avatar--demo' : ''}`}>{initials}</div>
+          <div className="sidebar-user-info">
+            <span className="sidebar-email" title={user?.email}>{user?.email}</span>
+            {demoMode && <span className="sidebar-demo-tag">demo</span>}
+          </div>
         </div>
         <button className="sidebar-logout" onClick={handleLogout} title="Logout">
           <IconLogout />

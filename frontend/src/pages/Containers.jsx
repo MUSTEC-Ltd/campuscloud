@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getProjects } from '../api/projects';
-import { getInstances, createInstance, deleteInstance, PRESET_IMAGES } from '../api/instances';
+import { getInstances, createInstance, deleteInstance, scaleInstance, PRESET_IMAGES } from '../api/instances';
 import Modal from '../components/Modal';
 
 function timeAgo(iso) {
@@ -30,6 +30,7 @@ export default function Containers() {
   const [deploying, setDeploying] = useState(false);
   const [deployError, setDeployError] = useState('');
   const [deleteId, setDeleteId] = useState(null);
+  const [actionError, setActionError] = useState('');
 
   const accessibleIds = projects.map((p) => p.id);
   const refresh = (projectList = projects) => {
@@ -83,10 +84,21 @@ export default function Containers() {
     try {
       deleteInstance(id, accessibleIds);
     } catch (err) {
-      setDeployError(err.message || 'Failed to delete container.');
+      setActionError(err.message || 'Failed to delete container.');
     }
     setDeleteId(null);
     refresh();
+  };
+
+  const handleScale = (id, delta, role) => {
+    if (role === 'viewer') { setActionError('Viewers cannot scale containers.'); return; }
+    setActionError('');
+    try {
+      scaleInstance(id, delta, accessibleIds);
+      refresh();
+    } catch (err) {
+      setActionError(err.message || 'Failed to scale container.');
+    }
   };
 
   const activeProject = filterProject
@@ -103,7 +115,7 @@ export default function Containers() {
               <span className="page-title-sub"> — {activeProject.name}</span>
             )}
           </h1>
-          <p className="page-subtitle">Deploy, monitor, and delete your running containers</p>
+          <p className="page-subtitle">Deploy, scale, and delete your running containers</p>
         </div>
         <button className="btn btn--primary" onClick={() => setShowModal(true)}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -112,6 +124,10 @@ export default function Containers() {
           Deploy Container
         </button>
       </div>
+
+      {actionError && (
+        <div className="alert alert--error" style={{ marginBottom: 16 }}>{actionError}</div>
+      )}
 
       <div className="card">
         {instances.length === 0 ? (
@@ -136,6 +152,7 @@ export default function Containers() {
                 <th>Status</th>
                 <th>CPU</th>
                 <th>Memory</th>
+                <th>Replicas</th>
                 <th>Age</th>
                 <th></th>
               </tr>
@@ -144,35 +161,61 @@ export default function Containers() {
               {(() => {
                 const projectsById = new Map(projects.map((p) => [p.id, p]));
                 return instances.map((inst) => {
-                const proj = projectsById.get(inst.project_id);
-                const canDelete = proj && proj.role !== 'viewer';
-                return (
-                  <tr key={inst.id}>
-                    <td className="td-name">{inst.name}</td>
-                    <td className="td-mono">{inst.image}</td>
-                    <td className="td-muted">{inst.project_name}</td>
-                    <td><span className="badge badge--green">running</span></td>
-                    <td className="td-muted">{inst.cpu}%</td>
-                    <td className="td-muted">{inst.memory} MB</td>
-                    <td className="td-muted">{timeAgo(inst.created_at)}</td>
-                    <td>
-                      {!canDelete ? (
-                        <span className="td-muted">read-only</span>
-                      ) : deleteId === inst.id ? (
-                        <span className="delete-confirm">
-                          Sure?{' '}
-                          <button className="link-btn link-btn--danger" onClick={() => handleDelete(inst.id)}>Yes, delete</button>
-                          {' · '}
-                          <button className="link-btn" onClick={() => setDeleteId(null)}>Cancel</button>
-                        </span>
-                      ) : (
-                        <button className="btn btn--danger btn--sm" onClick={() => setDeleteId(inst.id)}>
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
+                  const proj = projectsById.get(inst.project_id);
+                  const canEdit = proj && proj.role !== 'viewer';
+                  const replicas = inst.replicas ?? 1;
+                  return (
+                    <tr key={inst.id}>
+                      <td className="td-name">{inst.name}</td>
+                      <td className="td-mono">{inst.image}</td>
+                      <td className="td-muted">{inst.project_name}</td>
+                      <td><span className="badge badge--green">running</span></td>
+                      <td className="td-muted">{inst.cpu}%</td>
+                      <td className="td-muted">{inst.memory} MB</td>
+                      <td>
+                        {canEdit ? (
+                          <div className="scale-controls">
+                            <button
+                              className="scale-btn"
+                              onClick={() => handleScale(inst.id, -1, proj?.role)}
+                              disabled={replicas <= 1}
+                              title="Scale down"
+                            >
+                              −
+                            </button>
+                            <span className="scale-value">{replicas}</span>
+                            <button
+                              className="scale-btn"
+                              onClick={() => handleScale(inst.id, 1, proj?.role)}
+                              disabled={replicas >= 5}
+                              title="Scale up"
+                            >
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="td-muted">{replicas}</span>
+                        )}
+                      </td>
+                      <td className="td-muted">{timeAgo(inst.created_at)}</td>
+                      <td>
+                        {!canEdit ? (
+                          <span className="td-muted">read-only</span>
+                        ) : deleteId === inst.id ? (
+                          <span className="delete-confirm">
+                            Sure?{' '}
+                            <button className="link-btn link-btn--danger" onClick={() => handleDelete(inst.id)}>Yes, delete</button>
+                            {' · '}
+                            <button className="link-btn" onClick={() => setDeleteId(null)}>Cancel</button>
+                          </span>
+                        ) : (
+                          <button className="btn btn--danger btn--sm" onClick={() => setDeleteId(inst.id)}>
+                            Delete
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
                 });
               })()}
             </tbody>
