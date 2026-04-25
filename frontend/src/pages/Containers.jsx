@@ -18,7 +18,7 @@ function timeAgo(iso) {
 const DEFAULT_FORM = { name: '', image: PRESET_IMAGES[0], customImage: '', project_id: '' };
 
 export default function Containers() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [searchParams] = useSearchParams();
   const filterProject = searchParams.get('project') ?? '';
 
@@ -31,13 +31,20 @@ export default function Containers() {
   const [deployError, setDeployError] = useState('');
   const [deleteId, setDeleteId] = useState(null);
 
-  const refresh = () => setInstances(getInstances(filterProject || undefined));
+  const accessibleIds = projects.map((p) => p.id);
+  const refresh = (projectList = projects) => {
+    const ids = projectList.map((p) => p.id);
+    setInstances(getInstances(filterProject || undefined, ids));
+  };
 
   useEffect(() => {
     getProjects(token)
-      .then(setProjects)
-      .catch(() => {});
-    refresh();
+      .then((proj) => {
+        setProjects(proj);
+        refresh(proj);
+      })
+      .catch(() => { refresh([]); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, filterProject]);
 
   const handleDeploy = (e) => {
@@ -48,26 +55,36 @@ export default function Containers() {
     const image = useCustomImage ? form.customImage.trim() : form.image;
     if (!image) { setDeployError('Please specify a Docker image.'); setDeploying(false); return; }
     const project = projects.find((p) => p.id === form.project_id);
+    if (project && project.role === 'viewer') {
+      setDeployError('Viewers cannot deploy containers in this project.');
+      setDeploying(false);
+      return;
+    }
     try {
       createInstance({
         name: form.name.trim(),
         image,
         project_id: form.project_id,
         project_name: project?.name ?? form.project_id,
-      });
+        owner_id: user?.id,
+      }, accessibleIds);
       setForm(DEFAULT_FORM);
       setUseCustomImage(false);
       setShowModal(false);
       refresh();
-    } catch {
-      setDeployError('Failed to deploy container.');
+    } catch (err) {
+      setDeployError(err.message || 'Failed to deploy container.');
     } finally {
       setDeploying(false);
     }
   };
 
   const handleDelete = (id) => {
-    deleteInstance(id);
+    try {
+      deleteInstance(id, accessibleIds);
+    } catch (err) {
+      setDeployError(err.message || 'Failed to delete container.');
+    }
     setDeleteId(null);
     refresh();
   };
@@ -124,31 +141,37 @@ export default function Containers() {
               </tr>
             </thead>
             <tbody>
-              {instances.map((inst) => (
-                <tr key={inst.id}>
-                  <td className="td-name">{inst.name}</td>
-                  <td className="td-mono">{inst.image}</td>
-                  <td className="td-muted">{inst.project_name}</td>
-                  <td><span className="badge badge--green">running</span></td>
-                  <td className="td-muted">{inst.cpu}%</td>
-                  <td className="td-muted">{inst.memory} MB</td>
-                  <td className="td-muted">{timeAgo(inst.created_at)}</td>
-                  <td>
-                    {deleteId === inst.id ? (
-                      <span className="delete-confirm">
-                        Sure?{' '}
-                        <button className="link-btn link-btn--danger" onClick={() => handleDelete(inst.id)}>Yes, delete</button>
-                        {' · '}
-                        <button className="link-btn" onClick={() => setDeleteId(null)}>Cancel</button>
-                      </span>
-                    ) : (
-                      <button className="btn btn--danger btn--sm" onClick={() => setDeleteId(inst.id)}>
-                        Delete
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {instances.map((inst) => {
+                const proj = projects.find((p) => p.id === inst.project_id);
+                const canDelete = proj && proj.role !== 'viewer';
+                return (
+                  <tr key={inst.id}>
+                    <td className="td-name">{inst.name}</td>
+                    <td className="td-mono">{inst.image}</td>
+                    <td className="td-muted">{inst.project_name}</td>
+                    <td><span className="badge badge--green">running</span></td>
+                    <td className="td-muted">{inst.cpu}%</td>
+                    <td className="td-muted">{inst.memory} MB</td>
+                    <td className="td-muted">{timeAgo(inst.created_at)}</td>
+                    <td>
+                      {!canDelete ? (
+                        <span className="td-muted">read-only</span>
+                      ) : deleteId === inst.id ? (
+                        <span className="delete-confirm">
+                          Sure?{' '}
+                          <button className="link-btn link-btn--danger" onClick={() => handleDelete(inst.id)}>Yes, delete</button>
+                          {' · '}
+                          <button className="link-btn" onClick={() => setDeleteId(null)}>Cancel</button>
+                        </span>
+                      ) : (
+                        <button className="btn btn--danger btn--sm" onClick={() => setDeleteId(inst.id)}>
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
