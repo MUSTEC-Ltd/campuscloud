@@ -1,10 +1,6 @@
 # CampusCloud Frontend — Architecture Diagram
 
-**Team A06 · BDS-8A**
-
-This document covers the internal architecture of the frontend dashboard only.
-Other teams' backend services and data-plane components are referenced only
-where the frontend directly interfaces with them.
+**Team A06 · BDS-8A · Phase 1 + Phase 2**
 
 ---
 
@@ -17,10 +13,11 @@ where the frontend directly interfaces with them.
 ├── /register    → <Register />
 │
 └── <ProtectedRoute>        (redirects to /login if no token)
-      └── <Layout>          (sidebar shell)
+      └── <Layout>          (sidebar shell + demo banner)
             ├── /dashboard  → <Dashboard />
             ├── /projects   → <Projects />
-            └── /containers → <Containers />
+            ├── /containers → <Containers />
+            └── /billing    → <Billing />       ← Phase 2
 ```
 
 ---
@@ -28,50 +25,59 @@ where the frontend directly interfaces with them.
 ## Internal Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    BROWSER  (React SPA)                         │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                  AuthContext                              │  │
-│  │  token ─────────────────────────────────────────────┐   │  │
-│  │  user  ─────────────────────────────────────────┐   │   │  │
-│  │  loginCtx() / logoutCtx()                       │   │   │  │
-│  └──────────────────────────────────────┬──────────┼───┼───┘  │
-│                                         │          │   │       │
-│  ┌──────────┐ ┌──────────┐ ┌────────────┴──┐  ┌───▼───▼────┐  │
-│  │ Login /  │ │Dashboard │ │  Projects     │  │ Containers │  │
-│  │ Register │ │          │ │               │  │            │  │
-│  │  Pages   │ │stat cards│ │ list + create │  │deploy/del  │  │
-│  └────┬─────┘ └────┬─────┘ └──────┬────────┘  └─────┬──────┘  │
-│       │            │              │                  │         │
-│  ─────┴────────────┴──────────────┴──────────────────┴──────── │
-│                         API Layer  (src/api/)                   │
-│                                                                 │
-│    ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐   │
-│    │   auth.js   │   │ projects.js  │   │  instances.js    │   │
-│    │             │   │              │   │  (localStorage   │   │
-│    │ login()     │   │ getProjects()│   │   mock)          │   │
-│    │ register()  │   │ createProject│   │                  │   │
-│    │ logout()    │   │ ()           │   │ getInstances()   │   │
-│    └──────┬──────┘   └──────┬───────┘   │ createInstance() │   │
-│           │                │           │ deleteInstance() │   │
-│           │                │           │ getStats()       │   │
-│           │                │           └────────┬─────────┘   │
-│           │                │                    │             │
-└───────────┼────────────────┼────────────────────┼─────────────┘
-            │  Bearer JWT    │  Bearer JWT         │  localStorage
-            │                │                     │  (no network)
-            ▼                ▼                     ▼
-   ┌──────────────────────────────────┐    ┌───────────────────┐
-   │   Backend REST API  (:5000)      │    │  localStorage     │
-   │   (A01–A04, live)                │    │  (mock data store)│
-   │                                  │    │                   │
-   │   POST /login                    │    │  "instances" key  │
-   │   POST /register                 │    │  JSON array       │
-   │   POST /logout                   │    └───────────────────┘
-   │   GET  /project                  │
-   │   POST /project                  │
-   └──────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                       BROWSER  (React SPA)                           │
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐     │
+│  │                     AuthContext                              │     │
+│  │  token · user · demoMode                                    │     │
+│  │  login(token, user, demoMode) / logout()                    │     │
+│  └────────────────────────────┬────────────────────────────────┘     │
+│                               │                                      │
+│  ┌──────────┐ ┌──────────────┐│┌──────────────┐ ┌────────────────┐  │
+│  │ Login /  │ │  Dashboard   ││ │  Projects    │ │  Containers    │  │
+│  │ Register │ │ stats+trends ││ │  list+create │ │ deploy+scale   │  │
+│  └────┬─────┘ └──────┬───────┘│└──────┬───────┘ └──────┬─────────┘  │
+│       │              │        │       │                 │            │
+│       │              │  ┌─────┴──┐    │                 │            │
+│       │              │  │Billing │    │                 │            │
+│       │              │  │ page   │    │                 │            │
+│       │              │  └────────┘    │                 │            │
+│  ─────┴──────────────┴───────────────┴─────────────────┴─────────── │
+│                          API Layer  (src/api/)                       │
+│                                                                      │
+│  ┌──────────┐  ┌────────────┐  ┌──────────────────┐  ┌───────────┐  │
+│  │ auth.js  │  │projects.js │  │  instances.js    │  │billing.js │  │
+│  │          │  │            │  │  (localStorage   │  │           │  │
+│  │ login()  │  │getProjects │  │   mock)          │  │container  │  │
+│  │ register │  │createProj  │  │ getInstances()   │  │  Cost()   │  │
+│  │ logout() │  │getMembers  │  │ createInstance() │  │billing    │  │
+│  │          │  │addMember   │  │ deleteInstance() │  │ ByProject │  │
+│  │ Demo mode│  │removeMemb  │  │ scaleInstance()  │  │totalCost  │  │
+│  │ fallback │  │Demo mode   │  │ getStats()       │  │           │  │
+│  └────┬─────┘  └─────┬──────┘  └────────┬─────────┘  └───────────┘  │
+│       │              │                  │                            │
+│  ─────┴──────────────┴──────────────────┴──────────────────────────  │
+│                   mock-seed.js                                       │
+│   isDemoMode() / enableDemoMode() / getDemoProjects()                │
+│   DEMO_TOKEN · DEMO_USER_ID · seed data (3 projects, 6 containers)  │
+└──────────────────────────────────────────────────────────────────────┘
+        │  Bearer JWT          │  Bearer JWT        │  localStorage
+        │  (or demo token)     │  (or demo data)    │  (mock store)
+        ▼                      ▼                    ▼
+┌───────────────────────────────────┐   ┌────────────────────────┐
+│   Backend REST API  (:5000)       │   │  localStorage          │
+│   (A01–A04, live when available)  │   │  (mock data store)     │
+│                                   │   │                        │
+│   POST /login                     │   │  "campuscloud_         │
+│   POST /register                  │   │   instances" key       │
+│   POST /logout                    │   │  "cc_demo_projects"    │
+│   GET  /project                   │   │  "cc_demo" flag        │
+│   POST /project                   │   └────────────────────────┘
+│   GET  /project/:id/members       │
+│   POST /project/:id/members       │
+│   DELETE /project/:id/members/:id │
+└───────────────────────────────────┘
 ```
 
 ---
@@ -81,125 +87,118 @@ where the frontend directly interfaces with them.
 ### Pages
 
 | Page | File | Responsibility |
-|------|------|---------------|
-| Login | `pages/Login.jsx` | Email + password form; calls `auth.js → login()`; stores JWT via `AuthContext` |
-| Register | `pages/Register.jsx` | Account creation; client-side validation (email domain, password strength); calls `auth.js → register()` |
-| Dashboard | `pages/Dashboard.jsx` | Stat cards (projects, containers, CPU, memory); recent-projects list; recent-containers list |
-| Projects | `pages/Projects.jsx` | Fetches and lists user projects; "New Project" modal calls `projects.js → createProject()` |
-| Containers | `pages/Containers.jsx` | Lists containers (filtered by `?project=` param); "Deploy" modal; delete per card |
+|------|------|----------------|
+| Login | `pages/Login.jsx` | Email + password form; on network failure auto-enters demo mode |
+| Register | `pages/Register.jsx` | Account creation with password strength validation |
+| Dashboard | `pages/Dashboard.jsx` | Stat cards (5: projects, containers, CPU, memory, cost); recent project/container tables; per-project resource trends |
+| Projects | `pages/Projects.jsx` | Fetches and lists user projects; create modal; members modal |
+| Containers | `pages/Containers.jsx` | Lists containers; deploy modal; replica scale +/- controls; delete |
+| Billing | `pages/Billing.jsx` | (**Phase 2**) Per-project and per-container cost breakdown using billing formula |
 
 ### Shared Components
 
 | Component | File | Responsibility |
-|-----------|------|---------------|
-| Layout | `components/Layout.jsx` | App shell — renders `<Sidebar />` + `<Outlet />` |
-| Sidebar | `components/Sidebar.jsx` | Navigation links; highlights current route |
-| Modal | `components/Modal.jsx` | Generic dialog; closes on Escape key or backdrop click |
+|-----------|------|----------------|
+| Layout | `components/Layout.jsx` | App shell — renders `<Sidebar />` + `<Outlet />`; shows demo mode banner |
+| Sidebar | `components/Sidebar.jsx` | Navigation (Dashboard, Projects, Containers, Billing); demo mode tag |
+| Modal | `components/Modal.jsx` | Generic dialog; closes on Escape or backdrop click |
 | ProtectedRoute | `components/ProtectedRoute.jsx` | Reads `AuthContext`; redirects to `/login` if no token |
 
 ### Context
 
 | Context | File | What it holds |
-|---------|------|--------------|
-| AuthContext | `context/AuthContext.jsx` | `token` (JWT string), `user` (id + email), `loginCtx()`, `logoutCtx()`; persists to `localStorage` on every change |
+|---------|------|---------------|
+| AuthContext | `context/AuthContext.jsx` | `token`, `user`, `demoMode` flag; `login(token, user, demo)`, `logout()`; persists to `localStorage` |
 
 ### API Modules
 
 | Module | File | Real or Mock |
 |--------|------|-------------|
-| auth | `api/auth.js` | **Real** — `fetch()` to `/login`, `/register`, `/logout` |
-| projects | `api/projects.js` | **Real** — `fetch()` to `GET /project`, `POST /project` |
-| instances | `api/instances.js` | **Mock** — reads/writes `localStorage`; no network calls yet |
+| auth | `api/auth.js` | **Real** (with demo fallback on `TypeError`) |
+| projects | `api/projects.js` | **Real** (returns mock data in demo mode) |
+| instances | `api/instances.js` | **Mock** localStorage + scale support |
+| billing | `api/billing.js` | **Computed** from instances (no network) |
+| mock-seed | `api/mock-seed.js` | Demo data seed — 3 projects, 6 containers |
+
+---
+
+## Demo Mode
+
+When the backend is unreachable (`TypeError` on `fetch`), login automatically enters **Demo Mode**:
+
+1. `auth.js` catches the `TypeError` and calls `enableDemoMode()`
+2. `enableDemoMode()` sets `cc_demo=1` in localStorage and seeds mock projects + containers
+3. `AuthContext` stores `demoMode: true` and passes it through context
+4. `Layout` renders a yellow warning banner
+5. `Sidebar` shows a "demo" tag next to the user avatar
+6. `projects.js` reads from `cc_demo_projects` (localStorage) instead of the API
+7. `instances.js` reads/writes `campuscloud_instances` (localStorage) as normal
+
+To exit demo mode, the user logs out — `disableDemoMode()` clears all demo keys.
 
 ---
 
 ## Data Flows
 
-### Login
+### Login (with demo fallback)
 
 ```
 User submits form
       │
       ▼
-Login.jsx  →  auth.js → POST /login { email, password }
+Login.jsx → auth.js → POST /login { email, password }
       │
-      ▼
-Response: { accessToken, user }
+      ├── success → { accessToken, user, demoMode: false }
+      │              AuthContext.login(token, user, false)
+      │              navigate("/dashboard")
       │
-      ▼
-AuthContext.loginCtx(token, user)
-  ├── state updated
-  └── localStorage updated
-      │
-      ▼
-React Router → navigate("/dashboard")
+      └── TypeError (network down) → enableDemoMode()
+                                     return { accessToken: DEMO_TOKEN, user, demoMode: true }
+                                     AuthContext.login(token, user, true)
+                                     navigate("/dashboard")
 ```
 
-### Create Project
+### Container Scaling (Phase 2)
 
 ```
-User clicks "New Project" → Modal opens
+User clicks +/- on a container row
       │
       ▼
-Projects.jsx submits name
+Containers.jsx → scaleInstance(id, ±1, accessibleIds)
       │
       ▼
-projects.js → POST /project  { name }
-  Authorization: Bearer <token>  (from AuthContext)
+instances.js clamps replicas to [1, 5] and writes to localStorage
       │
       ▼
-Response: { id, name, owner_id, created_at }
-      │
-      ▼
-Projects.jsx appends to local state → list re-renders
+Containers.jsx calls refresh() → list re-renders with new replica count
 ```
 
-### Deploy Container (mock)
+### Billing Calculation (Phase 2)
 
 ```
-User clicks "Deploy" → Modal opens
+Dashboard / Billing page loads
       │
       ▼
-Containers.jsx submits { name, image, project_id }
+getProjects(token) + getInstances(undefined, ids)
       │
       ▼
-instances.js → createInstance()
-  ├── generates a UUID
-  ├── builds container object { id, name, image, project_id, status: "running", ... }
-  └── writes to localStorage["instances"]
+billingByProject(instances, projects)
+  └── for each instance: cost = (runtime_minutes × 2 + memory_MB × 0.01) × replicas
       │
       ▼
-Containers.jsx appends to local state → list re-renders
-```
-
-### Delete Container (mock)
-
-```
-User clicks "Delete" on a container card
-      │
-      ▼
-Containers.jsx calls deleteInstance(id)
-      │
-      ▼
-instances.js → filters out the matching entry from localStorage["instances"]
-      │
-      ▼
-Containers.jsx removes item from local state → list re-renders
+Render per-project cost breakdown
 ```
 
 ---
 
 ## State Management
 
-There is **no external state library** (no Redux, no Zustand).
-State lives in two places:
+No external state library. State lives in two places:
 
 | Location | What lives there |
 |----------|-----------------|
-| `AuthContext` (React Context) | JWT token, logged-in user; shared across the entire app |
-| Page-level `useState` | Lists (projects, containers), loading flags, modal open/close state |
-
-This keeps the footprint small and easy to reason about for a team codebase.
+| `AuthContext` (React Context) | JWT token, logged-in user, demo mode flag |
+| Page-level `useState` | Lists, loading flags, modal state, error messages |
 
 ---
 
@@ -212,19 +211,19 @@ This keeps the footprint small and easy to reason about for a team codebase.
 | `/dashboard` | `Dashboard` | ✅ |
 | `/projects` | `Projects` | ✅ |
 | `/containers` | `Containers` | ✅ |
-| `*` | Redirect → `/login` | — |
+| `/billing` | `Billing` | ✅ |
+| `*` | Redirect → `/dashboard` | — |
 
 ---
 
 ## Mock → Real API Swap Points
 
-When the BDS-8B data plane is ready, **only `src/api/instances.js` needs to
-change**. Replace each function body with a `fetch()` call to the real
-endpoint. No page components need to be modified.
-
-| Function | Planned real endpoint |
-|----------|-----------------------|
-| `getInstances(projectId?)` | `GET /instances?project_id=<id>` |
-| `createInstance(data)` | `POST /instance` |
-| `deleteInstance(id)` | `DELETE /instance/:id` |
-| `getStats()` | derived from `GET /instances` |
+| Function | Current | Planned real endpoint |
+|----------|---------|----------------------|
+| `getInstances(projectId?)` | localStorage | `GET /instances?project_id=<id>` |
+| `createInstance(data)` | localStorage | `POST /instance` |
+| `deleteInstance(id)` | localStorage | `DELETE /instance/:id` |
+| `scaleInstance(id, delta)` | localStorage | `PUT /instance/:id/scale { replicas }` |
+| `getStats()` | derived locally | derived from `GET /instances` |
+| billing functions | computed locally | `GET /billing/:project_id`, `GET /usage/:project_id` |
+| `GET /metrics/:project_id` | not yet | Phase 2 monitoring API |
