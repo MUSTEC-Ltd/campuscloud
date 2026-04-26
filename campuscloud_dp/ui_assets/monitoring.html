@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Resource Monitoring | CampusCloud Console</title>
-    <link rel="stylesheet" href="/ui/assets/styles.css">
+    <title>Monitoring | CampusCloud Console</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css?v=20260424b">
   </head>
   <body data-module="monitoring">
     <div class="app-shell">
@@ -23,26 +23,32 @@
       </header>
 
       <section class="hero">
-        <p class="eyebrow">Resource Monitoring</p>
+        <p class="eyebrow">Runtime Monitoring</p>
         <h1>Review stored resource usage for active workloads.</h1>
-        <p>View CPU and memory samples captured from running containers and track resource consumption across projects.</p>
+        <p>Inspect CPU, memory, and runtime usage for a project and compare recent observations over time.</p>
       </section>
 
       <section class="panel-grid">
         <section class="panel half">
           <div class="panel-header">
-            <div>
-              <h2>Query metrics</h2>
-              <p class="panel-subtitle">Fetch recently stored samples for a given project.</p>
+              <div>
+                <h2>Metrics query</h2>
+                <p class="panel-subtitle">Load project totals, per-instance usage, and recent stored samples.</p>
+              </div>
             </div>
-          </div>
           <form class="stack" data-monitoring-form>
-            <div class="field-group">
-              <label for="project-input">Project ID</label>
-              <input id="project-input" name="project_id" value="project-a" placeholder="e.g. project-a">
+            <div class="toolbar">
+              <div class="field-group">
+                <label for="monitor-project">Project ID</label>
+                <input id="monitor-project" name="project_id" value="project-a">
+              </div>
+              <div class="field-group">
+                <label for="monitor-limit">Sample Limit</label>
+                <input id="monitor-limit" name="limit" type="number" value="20" min="1" max="100">
+              </div>
             </div>
             <div class="button-row">
-              <button type="submit">Fetch Metrics</button>
+              <button type="submit">Load Metrics</button>
             </div>
           </form>
           <div class="notice" data-monitoring-notice></div>
@@ -51,23 +57,29 @@
 
         <aside class="panel half">
           <div class="panel-header">
-            <div>
-              <h2>How collection works</h2>
-              <p class="panel-subtitle">How the platform gathers and stores runtime metrics.</p>
+              <div>
+                <h2>Billing overview</h2>
+                <p class="panel-subtitle">Estimated usage charges for the selected project.</p>
+              </div>
             </div>
-          </div>
-          <div class="stack">
-            <article class="item-card">Only running instances that have a Docker container ID are sampled.</article>
-            <article class="item-card">Results are sorted from most recent to oldest collection time.</article>
-            <article class="item-card">The most recent sample is highlighted at the top for quick reference.</article>
-          </div>
+          <div data-billing-overview></div>
         </aside>
 
         <section class="panel">
           <div class="panel-header">
             <div>
-              <h2>Collected samples</h2>
-              <p class="panel-subtitle">Most recent measurements appear first.</p>
+              <h2>Per-instance status</h2>
+              <p class="panel-subtitle">Latest usage by tracked instance.</p>
+            </div>
+          </div>
+          <div class="list" data-instance-metrics></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Recent samples</h2>
+              <p class="panel-subtitle">Latest samples are shown first.</p>
             </div>
           </div>
           <div class="table-wrap">
@@ -75,9 +87,10 @@
               <thead>
                 <tr>
                   <th>Instance</th>
-                  <th>CPU %</th>
-                  <th>Memory (MB)</th>
-                  <th>Collected at</th>
+                  <th>CPU</th>
+                  <th>Memory</th>
+                  <th>Runtime</th>
+                  <th>Captured</th>
                 </tr>
               </thead>
               <tbody data-metric-table></tbody>
@@ -87,6 +100,6 @@
       </section>
     </div>
 
-    <script type="module" src="/ui/assets/monitoring.js"></script>
+    <script type="module" src="/ui/assets/monitoring.js?v=20260424b"></script>
   </body>
 </html>
