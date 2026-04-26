@@ -1,36 +1,58 @@
-/**
- * Shared utility functions used across CampusCloud UI modules.
- */
-
-export async function requestJson(url, opts = {}) {
-  const resp = await fetch(url, {
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
-    ...opts,
+export async function requestJson(url, options = {}) {
+  const response = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
   });
 
-  if (resp.status === 204) return null;
-
-  const body = await resp.json().catch(() => ({}));
-  if (!resp.ok) {
-    throw new Error(body?.detail || `${resp.status} ${resp.statusText}`);
+  if (response.status === 204) {
+    return null;
   }
-  return body;
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = data?.detail || `${response.status} ${response.statusText}`;
+    throw new Error(detail);
+  }
+  return data;
 }
 
-export function setNotice(el, msg = "", type = "") {
-  el.textContent = msg;
-  el.className = "notice";
-  if (type) el.classList.add(type);
+export function setNotice(element, message = "", tone = "") {
+  element.textContent = message;
+  element.className = "notice";
+  if (tone) {
+    element.classList.add(tone);
+  }
 }
 
-export function formatDate(val) {
-  if (!val) return "—";
-  return new Date(val).toLocaleString();
+export function formatDate(value) {
+  if (!value) return "n/a";
+  return new Date(value).toLocaleString();
 }
 
-export function escapeHtml(text) {
-  const str = String(text ?? "");
-  return str
+export function formatDuration(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return "n/a";
+  if (seconds < 60) return `${seconds.toFixed(0)}s`;
+  if (seconds < 3600) return `${(seconds / 60).toFixed(1)}m`;
+  return `${(seconds / 3600).toFixed(1)}h`;
+}
+
+export function formatMoney(value, currency = "USD") {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "n/a";
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+export function escapeHtml(value) {
+  return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -39,10 +61,10 @@ export function escapeHtml(text) {
 }
 
 export function statusBadge(status) {
-  const label = escapeHtml(status || "unknown");
-  return `<span class="badge ${label}">${label}</span>`;
+  const safe = escapeHtml(status || "unknown");
+  return `<span class="badge ${safe}">${safe}</span>`;
 }
 
-export function renderEmpty(container, msg) {
-  container.innerHTML = `<div class="empty">${escapeHtml(msg)}</div>`;
+export function renderEmpty(target, message) {
+  target.innerHTML = `<div class="empty">${escapeHtml(message)}</div>`;
 }
