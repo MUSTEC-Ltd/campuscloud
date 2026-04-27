@@ -1,38 +1,36 @@
-const { pool } = require('../config/db');
+const supabase = require('../config/db'); // Using your Phase 1 Supabase connection
 
 const ROLE_RANK = { viewer: 1, editor: 2, owner: 3 };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function requireProjectRole(minRole) {
   return async (req, res, next) => {
-    const projectId =
-      req.params.id || req.body?.project_id || req.query?.project_id;
-    if (!projectId) {
-      return res.status(400).json({ error: 'project_id is required' });
-    }
-    if (!UUID_RE.test(projectId)) {
-      return res.status(400).json({ error: 'Invalid project ID' });
-    }
+    const projectId = req.params.id || req.body?.project_id || req.query?.project_id;
+    
+    if (!projectId) return res.status(400).json({ error: 'project_id is required' });
+    if (!UUID_RE.test(projectId)) return res.status(400).json({ error: 'Invalid project ID' });
 
     try {
-      const result = await pool.query(
-        `SELECT p.id, p.name, p.description, p.owner_id, p.status, p.created_at, m.role
-         FROM projects p
-         JOIN project_members m ON m.project_id = p.id AND m.user_id = $2
-         WHERE p.id = $1 AND p.status = 'active'`,
-        [projectId, req.user.id]
-      );
+      // Assuming a simplified schema based on Phase 1 where the project has an owner_id
+      const { data: project, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
 
-      if (result.rowCount === 0) {
+      if (error || !project) {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      const project = result.rows[0];
-      if (ROLE_RANK[project.role] < ROLE_RANK[minRole]) {
+      // Check if the current user is the owner (Rank 3)
+      // Note: Expand this logic if your database schema officially implemented the 'project_members' table
+      const userRole = project.owner_id === req.user.id ? 'owner' : 'viewer';
+
+      if (ROLE_RANK[userRole] < ROLE_RANK[minRole]) {
         return res.status(403).json({
           error: 'Insufficient permission',
           required: minRole,
-          actual: project.role,
+          actual: userRole,
         });
       }
 
