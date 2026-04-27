@@ -1,0 +1,140 @@
+name: Enforce Main Branch Policy
+
+# Triggers on every push to main.
+# Without admin branch-protection settings we cannot PREVENT a push,
+# but we CAN detect and revert it immediately after it lands.
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write  # needed to force-push the revert
+  issues: write    # needed to open a violation notice
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ------------------------------------------------------------------ #
+      #  Policy check                                                        #
+      #  Rules:                                                              #
+      #    1. github-actions[bot] is always allowed (avoids revert loops).  #
+      #    2. AUTHORIZED_USERS can push directly with no PR required.       #
+      #    3. Everyone else must go through a PR with ≥ 1 approved review.  #
+      # ------------------------------------------------------------------ #
+      - name: Check policy
+        id: policy
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pusher      = context.actor;
+            const sha         = context.sha;
+            const beforeSha   = context.payload.before;
+
+            // ── Guard: skip our own revert commits to avoid infinite loops ──
+            if (pusher === 'github-actions[bot]') {
+              console.log('Automated commit — skipping policy check.');
+              return;
+            }
+
+            // ── Rule 1: authorized users may push directly ──
+            const AUTHORIZED = ['ahmedembeddedxx'];
+            if (AUTHORIZED.includes(pusher)) {
+              console.log(`✅ Authorized user (${pusher}) — allowed.`);
+              return;
+            }
+
+            // ── Rule 2: others must have a merged PR with ≥ 1 approval ──
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              commit_sha: sha,
+            });
+
+            const mergedPR = prs.find(pr => pr.merged_at && pr.base.ref === 'main');
+            let reason = '';
+
+            if (mergedPR) {
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner:       context.repo.owner,
+                repo:        context.repo.repo,
+                pull_number: mergedPR.number,
+              });
+
+              const approvals = reviews.filter(r => r.state === 'APPROVED');
+
+              if (approvals.length >= 1) {
+                console.log(`✅ PR #${mergedPR.number} had ${approvals.length} approval(s) — allowed.`);
+                return;
+              }
+
+              reason = `PR #${mergedPR.number} merged by @${pusher} with **0 reviewer approvals**.`;
+            } else {
+              reason = `@${pusher} pushed **directly to main** without a PR.`;
+            }
+
+            console.log(`❌ Policy violation: ${reason}`);
+
+            // Pass data to the next steps via env vars
+            core.exportVariable('REVERT_NEEDED',      'true');
+            core.exportVariable('BEFORE_SHA',          beforeSha);
+            core.exportVariable('VIOLATION_REASON',    reason);
+            core.exportVariable('VIOLATOR',            pusher);
+
+      # ------------------------------------------------------------------ #
+      #  Revert                                                              #
+      #  Hard-resets main to the SHA before the bad push and force-pushes.  #
+      #  NOTE: if the org blocks GITHUB_TOKEN force-pushes you will need    #
+      #  to create a PAT with "repo" scope, store it as a secret named      #
+      #  ENFORCE_PAT, and replace `secrets.GITHUB_TOKEN` with it above.    #
+      # ------------------------------------------------------------------ #
+      - name: Revert unauthorized push
+        if: env.REVERT_NEEDED == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git reset --hard "${{ env.BEFORE_SHA }}"
+          git push --force origin main
+          echo "🔄 Reverted push by ${{ env.VIOLATOR }} back to ${{ env.BEFORE_SHA }}"
+
+      # ------------------------------------------------------------------ #
+      #  Notify — open a GitHub Issue so the violation is visible to all    #
+      # ------------------------------------------------------------------ #
+      - name: Open violation issue
+        if: env.REVERT_NEEDED == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const body = [
+              '## 🚨 Branch Policy Violation',
+              '',
+              `**What happened:** ${{ env.VIOLATION_REASON }}`,
+              `**Commit reverted:** \`${{ github.sha }}\``,
+              `**Reverted to:** \`${{ env.BEFORE_SHA }}\``,
+              '',
+              '---',
+              '### What to do next',
+              '1. Create a new branch off `main`',
+              '2. Re-apply your changes on that branch',
+              '3. Open a Pull Request',
+              '4. Get **at least 1 reviewer approval** before merging',
+              '',
+              '_Your commit has been automatically removed from `main`._',
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner:  context.repo.owner,
+              repo:   context.repo.repo,
+              title:  `🚨 Policy violation on main by @${{ env.VIOLATOR }}`,
+              body,
+            });

@@ -1,0 +1,31 @@
+{
+  "name": "gateway-api",
+  "version": "1.0.0",
+  "description": "CampusCloud API Gateway",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "test": "echo \"No tests defined\""
+  },
+  "keywords": [
+    "api-gateway",
+    "cloud",
+    "microservices"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.3.1",
+    "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.9.3"
+  }
+}
