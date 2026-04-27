@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../utils/tokens');
+// Fallback secret if the utils file is missing it
+const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET; 
 
 const authMiddleware = (req, res, next) => {
   const authHeader = req.header('Authorization');
@@ -10,8 +11,11 @@ const authMiddleware = (req, res, next) => {
 
   const token = authHeader.slice(7);
 
-  // Demo token: pass through — frontend enforces access control locally
+  // SECURITY PATCH: Only allow demo mode if explicitly in development
   if (token === 'cc-demo-mode-v1') {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ error: 'Demo mode is strictly disabled in production environments' });
+    }
     req.user = { id: 'demo-00000000-0000-0000-0000-000000000001', email: 'demo@campuscloud.local' };
     return next();
   }
