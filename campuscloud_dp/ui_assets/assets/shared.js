@@ -32,6 +32,25 @@ export function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
+export function formatDuration(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return "n/a";
+  if (seconds < 60) return `${seconds.toFixed(0)}s`;
+  if (seconds < 3600) return `${(seconds / 60).toFixed(1)}m`;
+  return `${(seconds / 3600).toFixed(1)}h`;
+}
+
+export function formatMoney(value, currency = "USD") {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "n/a";
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 export function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -49,4 +68,3 @@ export function statusBadge(status) {
 export function renderEmpty(target, message) {
   target.innerHTML = `<div class="empty">${escapeHtml(message)}</div>`;
 }
-

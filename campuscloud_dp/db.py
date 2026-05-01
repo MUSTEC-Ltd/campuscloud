@@ -41,11 +41,22 @@ def setup_db(db_path):
                 project_id text not null,
                 cpu_percent real not null,
                 memory_mb real not null,
+                runtime_seconds real not null default 0,
                 collected_at text not null
             )
             """
         )
+        ensure_usage_samples_runtime_column(conn)
         conn.commit()
+
+
+def ensure_usage_samples_runtime_column(conn):
+    columns = conn.execute("pragma table_info(usage_samples)").fetchall()
+    names = {row["name"] for row in columns}
+    if "runtime_seconds" not in names:
+        conn.execute(
+            "alter table usage_samples add column runtime_seconds real not null default 0"
+        )
 
 
 def make_instance_row(instance_id, project_id, name, image, cpu_millicores, memory_mb, network_name):
@@ -174,15 +185,22 @@ def count_active_instances(db_path, project_id):
     return int(row["total"])
 
 
-def add_sample(db_path, instance_id, project_id, cpu_percent, memory_mb):
+def add_sample(db_path, instance_id, project_id, cpu_percent, memory_mb, runtime_seconds):
     with closing(open_db(db_path)) as conn:
         conn.execute(
             """
             insert into usage_samples (
-                instance_id, project_id, cpu_percent, memory_mb, collected_at
-            ) values (?, ?, ?, ?, ?)
+                instance_id, project_id, cpu_percent, memory_mb, runtime_seconds, collected_at
+            ) values (?, ?, ?, ?, ?, ?)
             """,
-            (instance_id, project_id, cpu_percent, memory_mb, now_text()),
+            (
+                instance_id,
+                project_id,
+                cpu_percent,
+                memory_mb,
+                runtime_seconds,
+                now_text(),
+            ),
         )
         conn.commit()
 
@@ -197,6 +215,28 @@ def list_samples(db_path, project_id, limit=12):
             limit ?
             """,
             (project_id, limit),
+        ).fetchall()
+    return [row_to_dict(row) for row in rows]
+
+
+def list_latest_samples(db_path, project_id):
+    with closing(open_db(db_path)) as conn:
+        rows = conn.execute(
+            """
+            select s.*
+            from usage_samples s
+            join (
+                select instance_id, max(collected_at) as latest_collected_at
+                from usage_samples
+                where project_id = ?
+                group by instance_id
+            ) latest
+                on latest.instance_id = s.instance_id
+               and latest.latest_collected_at = s.collected_at
+            where s.project_id = ?
+            order by s.collected_at desc
+            """,
+            (project_id, project_id),
         ).fetchall()
     return [row_to_dict(row) for row in rows]
 
