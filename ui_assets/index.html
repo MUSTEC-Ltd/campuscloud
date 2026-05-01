@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CampusCloud Console</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css?v=20260424b">
+  </head>
+  <body data-module="hub">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/ui">
+          <span class="brand-mark"></span>
+          <span>CampusCloud Console</span>
+        </a>
+        <nav class="topnav">
+          <a class="active" href="/ui">Overview</a>
+          <a href="/ui/compute">Compute</a>
+          <a href="/ui/network">Network</a>
+          <a href="/ui/monitoring">Monitoring</a>
+          <a href="/ui/integration">Operations</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero">
+          <p class="eyebrow">Platform Overview</p>
+          <h1>Operational visibility across compute, isolation, and runtime health.</h1>
+          <p>
+            Use the overview to track active workloads, inspect recent state changes,
+            and move into the dedicated operational views for each service area.
+          </p>
+        </section>
+
+        <section class="panel-grid">
+          <section class="panel half">
+            <div class="panel-header">
+              <div>
+                <h2>Service summary</h2>
+                <p class="panel-subtitle">Current platform state reported by the backend.</p>
+              </div>
+            </div>
+            <div class="stat-grid" data-summary></div>
+          </section>
+
+          <section class="panel half">
+            <div class="panel-header">
+              <div>
+                <h2>Service views</h2>
+                <p class="panel-subtitle">Open the control surface for each subsystem.</p>
+              </div>
+            </div>
+            <div class="module-grid" data-modules></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Recent instance activity</h2>
+                <p class="panel-subtitle">Most recent tracked workload updates.</p>
+              </div>
+            </div>
+            <div class="list" data-recent></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/ui/assets/dashboard.js?v=20260424b"></script>
+  </body>
+</html>

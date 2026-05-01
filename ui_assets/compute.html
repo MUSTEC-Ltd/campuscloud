@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Compute | CampusCloud Console</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css?v=20260424b">
+  </head>
+  <body data-module="compute">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/ui">
+          <span class="brand-mark"></span>
+          <span>CampusCloud Console</span>
+        </a>
+        <nav class="topnav">
+          <a href="/ui">Overview</a>
+          <a class="active" href="/ui/compute">Compute</a>
+          <a href="/ui/network">Network</a>
+          <a href="/ui/monitoring">Monitoring</a>
+          <a href="/ui/integration">Operations</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <p class="eyebrow">Compute Control</p>
+        <h1>Provision and manage isolated project workloads.</h1>
+        <p>Create, scale, stop, delete, and review container instances with project-scoped resource limits.</p>
+      </section>
+
+      <section class="panel-grid">
+        <section class="panel half">
+          <div class="panel-header">
+              <div>
+                <h2>Provision instance</h2>
+                <p class="panel-subtitle">Submit workload settings and refresh the current project inventory.</p>
+              </div>
+            </div>
+          <form class="stack" data-create-form>
+            <div class="toolbar">
+              <div class="field-group">
+                <label for="project_id">Project ID</label>
+                <input id="project_id" name="project_id" value="project-a">
+              </div>
+              <div class="field-group">
+                <label for="image">Image</label>
+                <input id="image" name="image" value="nginx:alpine">
+              </div>
+              <div class="field-group">
+                <label for="cpu_millicores">CPU Millicores</label>
+                <input id="cpu_millicores" name="cpu_millicores" type="number" value="250" min="1">
+              </div>
+              <div class="field-group">
+                <label for="memory_mb">Memory MB</label>
+                <input id="memory_mb" name="memory_mb" type="number" value="128" min="1">
+              </div>
+              <div class="field-group">
+                <label for="name">Name</label>
+                <input id="name" name="name" placeholder="optional">
+              </div>
+            </div>
+            <div class="button-row">
+              <button type="submit">Create Instance</button>
+              <button class="secondary" type="button" data-refresh>Refresh Inventory</button>
+            </div>
+          </form>
+          <div class="notice" data-compute-notice></div>
+        </section>
+
+        <aside class="panel half">
+          <div class="panel-header">
+            <div>
+              <h2>Scale project</h2>
+              <p class="panel-subtitle">Set the desired instance count for a project and let the platform add or remove capacity.</p>
+            </div>
+          </div>
+          <form class="stack" data-scale-form>
+            <div class="toolbar">
+              <div class="field-group">
+                <label for="scale-project-id">Project ID</label>
+                <input id="scale-project-id" name="project_id" value="project-a">
+              </div>
+              <div class="field-group">
+                <label for="target_instances">Target Instances</label>
+                <input id="target_instances" name="target_instances" type="number" value="2" min="0">
+              </div>
+              <div class="field-group">
+                <label for="scale-name-prefix">Name Prefix</label>
+                <input id="scale-name-prefix" name="name_prefix" placeholder="optional">
+              </div>
+              <div class="field-group">
+                <label for="scale-image">Image Override</label>
+                <input id="scale-image" name="image" placeholder="only needed from zero">
+              </div>
+              <div class="field-group">
+                <label for="scale-cpu">CPU Override</label>
+                <input id="scale-cpu" name="cpu_millicores" type="number" min="1" placeholder="only needed from zero">
+              </div>
+              <div class="field-group">
+                <label for="scale-memory">Memory Override</label>
+                <input id="scale-memory" name="memory_mb" type="number" min="1" placeholder="only needed from zero">
+              </div>
+            </div>
+            <div class="button-row">
+              <button type="submit">Apply Scale</button>
+            </div>
+          </form>
+        </aside>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Project overview</h2>
+              <p class="panel-subtitle">Current workload shape for the selected project.</p>
+            </div>
+          </div>
+          <div data-compute-summary></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Instance inventory</h2>
+              <p class="panel-subtitle">Current non-deleted instances for the selected project.</p>
+            </div>
+          </div>
+          <div class="list" data-instance-list></div>
+        </section>
+      </section>
+    </div>
+
+    <script type="module" src="/ui/assets/compute.js?v=20260424b"></script>
+  </body>
+</html>
