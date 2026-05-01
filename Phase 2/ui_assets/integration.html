@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Operations | CampusCloud Console</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css?v=20260424b">
+  </head>
+  <body data-module="integration">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/ui">
+          <span class="brand-mark"></span>
+          <span>CampusCloud Console</span>
+        </a>
+        <nav class="topnav">
+          <a href="/ui">Overview</a>
+          <a href="/ui/compute">Compute</a>
+          <a href="/ui/network">Network</a>
+          <a href="/ui/monitoring">Monitoring</a>
+          <a class="active" href="/ui/integration">Operations</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <p class="eyebrow">Operations</p>
+        <h1>Track platform health and cross-service state.</h1>
+        <p>Review service health, quota mode, scaling status, and project-specific operational snapshots from a single view.</p>
+      </section>
+
+      <section class="panel-grid">
+        <section class="panel half">
+          <div class="panel-header">
+              <div>
+                <h2>Operations query</h2>
+                <p class="panel-subtitle">Project ID is optional when only platform-level status is required.</p>
+              </div>
+            </div>
+          <form class="stack" data-integration-form>
+            <div class="field-group">
+              <label for="integration-project">Project ID</label>
+              <input id="integration-project" name="project_id" value="project-a" placeholder="optional">
+            </div>
+            <div class="button-row">
+              <button type="submit">Load Status</button>
+            </div>
+          </form>
+          <div class="notice" data-integration-notice></div>
+          <div data-integration-status></div>
+        </section>
+
+        <aside class="panel half">
+          <div class="panel-header">
+              <div>
+                <h2>Service summary</h2>
+                <p class="panel-subtitle">Current runtime settings and background service state.</p>
+              </div>
+            </div>
+          <div data-service-summary></div>
+        </aside>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Project snapshot</h2>
+              <p class="panel-subtitle">Visible when a project-specific view is requested.</p>
+            </div>
+          </div>
+          <div class="list" data-project-snapshot></div>
+        </section>
+      </section>
+    </div>
+
+    <script type="module" src="/ui/assets/integration.js?v=20260424b"></script>
+  </body>
+</html>

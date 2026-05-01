@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Monitoring | CampusCloud Console</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css?v=20260424b">
+  </head>
+  <body data-module="monitoring">
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/ui">
+          <span class="brand-mark"></span>
+          <span>CampusCloud Console</span>
+        </a>
+        <nav class="topnav">
+          <a href="/ui">Overview</a>
+          <a href="/ui/compute">Compute</a>
+          <a href="/ui/network">Network</a>
+          <a class="active" href="/ui/monitoring">Monitoring</a>
+          <a href="/ui/integration">Operations</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <p class="eyebrow">Runtime Monitoring</p>
+        <h1>Review stored resource usage for active workloads.</h1>
+        <p>Inspect CPU, memory, and runtime usage for a project and compare recent observations over time.</p>
+      </section>
+
+      <section class="panel-grid">
+        <section class="panel half">
+          <div class="panel-header">
+              <div>
+                <h2>Metrics query</h2>
+                <p class="panel-subtitle">Load project totals, per-instance usage, and recent stored samples.</p>
+              </div>
+            </div>
+          <form class="stack" data-monitoring-form>
+            <div class="toolbar">
+              <div class="field-group">
+                <label for="monitor-project">Project ID</label>
+                <input id="monitor-project" name="project_id" value="project-a">
+              </div>
+              <div class="field-group">
+                <label for="monitor-limit">Sample Limit</label>
+                <input id="monitor-limit" name="limit" type="number" value="20" min="1" max="100">
+              </div>
+            </div>
+            <div class="button-row">
+              <button type="submit">Load Metrics</button>
+            </div>
+          </form>
+          <div class="notice" data-monitoring-notice></div>
+          <div data-latest-metric></div>
+        </section>
+
+        <aside class="panel half">
+          <div class="panel-header">
+              <div>
+                <h2>Billing overview</h2>
+                <p class="panel-subtitle">Estimated usage charges for the selected project.</p>
+              </div>
+            </div>
+          <div data-billing-overview></div>
+        </aside>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Per-instance status</h2>
+              <p class="panel-subtitle">Latest usage by tracked instance.</p>
+            </div>
+          </div>
+          <div class="list" data-instance-metrics></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Recent samples</h2>
+              <p class="panel-subtitle">Latest samples are shown first.</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Instance</th>
+                  <th>CPU</th>
+                  <th>Memory</th>
+                  <th>Runtime</th>
+                  <th>Captured</th>
+                </tr>
+              </thead>
+              <tbody data-metric-table></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </div>
+
+    <script type="module" src="/ui/assets/monitoring.js?v=20260424b"></script>
+  </body>
+</html>
