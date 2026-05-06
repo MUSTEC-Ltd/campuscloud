@@ -5,20 +5,18 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from campuscloud_dp import db
+from campuscloud_dp.groups import monitoring, network
 
 PACKAGE_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = PACKAGE_DIR.parent
 UI_DIR = PACKAGE_DIR / "ui_assets"
 UI_ASSETS_DIR = UI_DIR / "assets"
-DELIVERABLES_DIR = REPO_ROOT / "phase1-deliverables"
 UI_PAGES = ["compute", "network", "monitoring", "integration"]
 
 
 def mount_files(app):
     if UI_ASSETS_DIR.exists():
         app.mount("/ui/assets", StaticFiles(directory=str(UI_ASSETS_DIR)), name="ui-assets")
-    if DELIVERABLES_DIR.exists():
-        app.mount("/deliverables", StaticFiles(directory=str(DELIVERABLES_DIR)), name="deliverables")
 
 
 def add_integration_routes(app):
@@ -49,7 +47,12 @@ def add_integration_routes(app):
         )
         return {
             "health": "ok",
-            "active_instance_count": len(items),
+            "active_instance_count": sum(
+                1 for item in items if item["status"] in db.SCALABLE_STATUSES
+            ),
+            "scalable_instance_count": sum(
+                1 for item in items if item["status"] in db.SCALABLE_STATUSES
+            ),
             "status_breakdown": build_status_breakdown(items),
             "recent_instances": items[:8],
             "modules": [
@@ -57,29 +60,21 @@ def add_integration_routes(app):
                     "slug": "compute",
                     "title": "Compute Service",
                     "ui_path": "/ui/compute",
-                    "api_doc": "/deliverables/compute-service/api-documentation.pdf",
-                    "nist_doc": "/deliverables/compute-service/nist-mapping.pdf",
                 },
                 {
                     "slug": "network",
                     "title": "Network Isolation",
                     "ui_path": "/ui/network",
-                    "api_doc": "/deliverables/network-isolation/api-documentation.pdf",
-                    "nist_doc": "/deliverables/network-isolation/nist-mapping.pdf",
                 },
                 {
                     "slug": "monitoring",
                     "title": "Basic Monitoring",
                     "ui_path": "/ui/monitoring",
-                    "api_doc": "/deliverables/basic-monitoring/api-documentation.pdf",
-                    "nist_doc": "/deliverables/basic-monitoring/nist-mapping.pdf",
                 },
                 {
                     "slug": "integration",
-                    "title": "Integration Support",
+                    "title": "Operations",
                     "ui_path": "/ui/integration",
-                    "api_doc": "/deliverables/integration-support/api-documentation.pdf",
-                    "nist_doc": "/deliverables/integration-support/nist-mapping.pdf",
                 },
             ],
         }
@@ -91,16 +86,29 @@ def add_integration_routes(app):
 
         if project_id:
             items = db.list_instances(request.app.state.db_path, project_id=project_id)
+            profile = db.get_project_profile(request.app.state.db_path, project_id)
+            metrics = monitoring.build_metrics_payload(request.app, project_id, 5)
             snapshot = {
                 "project_id": project_id,
                 "instance_count": len(items),
+                "scalable_instance_count": db.count_scalable_instances(
+                    request.app.state.db_path,
+                    project_id,
+                ),
                 "status_breakdown": build_status_breakdown(items),
+                "workload_profile": profile,
+                "latest_metrics": metrics["totals"],
+                "billing": metrics["billing"],
+                "sample_count": metrics["sample_count"],
                 "instances": items,
             }
 
         return {
             "health": "ok",
             "metrics_worker_running": request.app.state.metrics_worker.is_running(),
+            "quota": {
+                "mode": request.app.state.quota_mode,
+            },
             "settings": {
                 "metrics_poll_interval_seconds": request.app.state.settings[
                     "metrics_poll_interval_seconds"
@@ -108,12 +116,18 @@ def add_integration_routes(app):
                 "project_network_prefix": request.app.state.settings["project_network_prefix"],
                 "stop_timeout_seconds": request.app.state.settings["stop_timeout_seconds"],
             },
-            "startup_features": [
+            "platform_features": [
                 "database initialization",
                 "group files loaded",
                 "startup resync",
                 "background metrics worker",
+                "project scaling",
+                "project metrics API",
             ],
+            "public_apis": {
+                "scale": "/scale",
+                "metrics": "/metrics/{project_id}",
+            },
             "project_snapshot": snapshot,
         }
 
@@ -175,6 +189,8 @@ def run_startup_sync(app):
                     "last_error": "Container missing during startup sync",
                 },
             )
+
+    network.cleanup_orphan_networks(app)
 
 
 def build_status_breakdown(items):

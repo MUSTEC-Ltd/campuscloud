@@ -1,0 +1,75 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{longtable}
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+\begin{document}
+\section*{Integration and Support API}
+\subsection*{Endpoints}
+\begin{longtable}{|p{0.14\linewidth}|p{0.24\linewidth}|p{0.52\linewidth}|}
+\hline
+\textbf{Method} & \textbf{Path} & \textbf{Purpose} \\
+\hline
+GET & \texttt{/health} & Basic service health probe. \\
+\hline
+GET & \texttt{/ui/api/summary} & Platform-wide overview for the main console. \\
+\hline
+GET & \texttt{/ui/api/integration} & Project-aware operational snapshot including quota mode and metrics summary. \\
+\hline
+\end{longtable}
+
+\subsection*{GET /health}
+\textbf{Success response}
+\begin{verbatim}
+{"status":"ok"}
+\end{verbatim}
+
+\subsection*{GET /ui/api/summary}
+\textbf{Response fields}
+\begin{itemize}
+\item \texttt{health}
+\item \texttt{active\_instance\_count}
+\item \texttt{scalable\_instance\_count}
+\item \texttt{status\_breakdown}
+\item \texttt{recent\_instances}
+\item \texttt{modules}
+\end{itemize}
+
+\subsection*{GET /ui/api/integration}
+\textbf{Optional query parameter}
+\begin{itemize}
+\item \texttt{project\_id} string
+\end{itemize}
+\textbf{Behavior}
+\begin{itemize}
+\item Without a project ID, returns platform status only.
+\item With a project ID, includes instance state, scalable count, workload profile, latest project metrics totals, and estimated billing.
+\end{itemize}
+\textbf{Success response} \texttt{200 OK}
+\begin{verbatim}
+{
+  "health": "ok",
+  "metrics_worker_running": false,
+  "quota": {"mode": "allow_all"},
+  "public_apis": {
+    "scale": "/scale",
+    "metrics": "/metrics/{project_id}"
+  },
+  "project_snapshot": {
+    "project_id": "project-a",
+    "instance_count": 2,
+    "scalable_instance_count": 2,
+    "workload_profile": {
+      "image": "nginx:alpine",
+      "cpu_millicores": 250,
+      "memory_mb": 128
+    },
+    "billing": {
+      "currency": "USD",
+      "amount_usd": 1.47
+    }
+  }
+}
+\end{verbatim}
+\end{document}

@@ -1,0 +1,32 @@
+B10-B12 Integration Support
+
+This folder does not include copied source code.
+Submit these files from the main repository root:
+
+- campuscloud_dp/groups/integration.py
+- campuscloud_dp/main.py
+- campuscloud_dp/config.py
+- campuscloud_dp/__init__.py
+- campuscloud_dp/groups/__init__.py
+- campuscloud_dp/ui_assets/index.html
+- campuscloud_dp/ui_assets/integration.html
+- campuscloud_dp/ui_assets/assets/dashboard.js
+- campuscloud_dp/ui_assets/assets/integration.js
+- pyproject.toml
+- uv.lock
+
+Git commands to use from /home/user/cloud-proj:
+
+git switch -c b10-b12-integration
+git add campuscloud_dp/groups/integration.py \
+        campuscloud_dp/main.py \
+        campuscloud_dp/config.py \
+        campuscloud_dp/__init__.py \
+        campuscloud_dp/groups/__init__.py \
+        campuscloud_dp/ui_assets/index.html \
+        campuscloud_dp/ui_assets/integration.html \
+        campuscloud_dp/ui_assets/assets/dashboard.js \
+        campuscloud_dp/ui_assets/assets/integration.js \
+        pyproject.toml \
+        uv.lock
+git commit -m "B10-B12: add integration support code"

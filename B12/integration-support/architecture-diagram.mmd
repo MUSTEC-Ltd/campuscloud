@@ -1,0 +1,13 @@
+flowchart TD
+    Startup["App startup"] --> Sync["Startup sync"]
+    Sync --> Containers["Reconcile managed containers"]
+    Sync --> Orphans["Cleanup orphan networks"]
+    Sync --> Worker["Start metrics worker"]
+
+    Ops["/ui/api/integration"] --> State["DB instance state"]
+    Ops --> Metrics["Latest project metrics totals"]
+    Ops --> Quota["Quota mode"]
+    Ops --> APIs["Public API paths"]
+
+    Summary["/ui/api/summary"] --> State
+    Health["/health"] --> Status["Service OK"]
